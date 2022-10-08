@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The BitcoinHD Core developers
+// Copyright (c) 2017-2020 The BFScoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,6 +22,9 @@
 #include <validation.h>
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
+#ifdef CUSTOM_GENERATE_COINS
+#include <node/coin.h>
 #endif
 
 #include <cinttypes>
@@ -181,13 +184,13 @@ typedef std::unordered_map< uint64_t, std::shared_ptr<CKey> > CPrivKeyMap;
 CPrivKeyMap mapSignaturePrivKeys;
 
 // 4398046511104 / 240 = 18325193796
-const uint64_t BHD_BASE_TARGET_240 = 18325193796ull;
+const uint64_t BFS_BASE_TARGET_240 = 18325193796ull;
 
 // 4398046511104 / 300 = 14660155037
-const uint64_t BHD_BASE_TARGET_300 = 14660155037ull;
+const uint64_t BFS_BASE_TARGET_300 = 14660155037ull;
 
 // 4398046511104 / 180 = 24433591728
-const uint64_t BHD_BASE_TARGET_180 = 24433591728ull;
+const uint64_t BFS_BASE_TARGET_180 = 24433591728ull;
 
 }
 
@@ -259,11 +262,11 @@ static uint64_t CalcDL(int nHeight, const uint256& generationSignature, const ui
 static uint64_t CalculateUnformattedDeadline(const CBlockIndex& prevBlockIndex, const CBlockHeader& block, const Consensus::Params& params)
 {
     // Fund
-    if (prevBlockIndex.nHeight + 1 <= params.BHDIP001PreMiningEndHeight)
+    if (prevBlockIndex.nHeight + 1 <= params.BFSIP001PreMiningEndHeight)
         return 0;
 
-    // BHDIP006 disallow plotter 0
-    if (block.nPlotterId == 0 && prevBlockIndex.nHeight + 1 >= params.BHDIP006Height)
+    // BFSIP002 disallow plotter 0
+    if (block.nPlotterId == 0 && prevBlockIndex.nHeight + 1 >= params.BFSIP002Height)
         return poc::INVALID_DEADLINE;
 
     // Regtest use nonce as deadline
@@ -282,10 +285,10 @@ uint64_t CalculateDeadline(const CBlockIndex& prevBlockIndex, const CBlockHeader
 uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHeader& block, const Consensus::Params& params)
 {
     int nHeight = prevBlockIndex.nHeight + 1;
-    if (nHeight < params.BHDIP001PreMiningEndHeight + 4) {
+    if (nHeight < params.BFSIP001PreMiningEndHeight + 4) {
         // genesis block & pre-mining block & const block
-        return BHD_BASE_TARGET_240;
-    } else if (nHeight < params.BHDIP001PreMiningEndHeight + 2700 && nHeight < params.BHDIP006Height) {
+        return BFS_BASE_TARGET_180;
+    } else if (nHeight < params.BFSIP001PreMiningEndHeight + 2700) {
         // [N-1,N-2,N-3,N-4]
         const int N = 4;
         const CBlockIndex *pLastindex = &prevBlockIndex;
@@ -298,9 +301,9 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
 
         int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime();
         uint64_t curBaseTarget = avgBaseTarget;
-        uint64_t newBaseTarget = (curBaseTarget * diffTime) / (params.BHDIP001TargetSpacing * 4);
-        if (newBaseTarget > BHD_BASE_TARGET_240) {
-            newBaseTarget = BHD_BASE_TARGET_240;
+        uint64_t newBaseTarget = (curBaseTarget * diffTime) / (params.BFSIP001TargetSpacing * 4);
+        if (newBaseTarget > BFS_BASE_TARGET_180) {
+            newBaseTarget = BFS_BASE_TARGET_180;
         }
         if (newBaseTarget < (curBaseTarget * 9 / 10)) {
             newBaseTarget = curBaseTarget * 9 / 10;
@@ -313,7 +316,7 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
         }
 
         return newBaseTarget;
-    } else if (nHeight < params.BHDIP006Height) {
+    } else if (nHeight < params.BFSIP003Height) {
         // [N-1,N-2,...,N-24,N-25]
         const int N = 24;
         const CBlockIndex *pLastindex = &prevBlockIndex;
@@ -323,7 +326,7 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
             avgBaseTarget = (avgBaseTarget * n + pLastindex->nBaseTarget) / (n + 1);
         }
         int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime();
-        int64_t targetTimespan = params.BHDIP001TargetSpacing * N;
+        int64_t targetTimespan = params.BFSIP001TargetSpacing * N;
         if (diffTime < targetTimespan / 2) {
             diffTime = targetTimespan / 2;
         }
@@ -332,8 +335,8 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
         }
         uint64_t curBaseTarget = prevBlockIndex.nBaseTarget;
         uint64_t newBaseTarget = avgBaseTarget * diffTime / targetTimespan;
-        if (newBaseTarget > BHD_BASE_TARGET_240) {
-            newBaseTarget = BHD_BASE_TARGET_240;
+        if (newBaseTarget > BFS_BASE_TARGET_180) {
+            newBaseTarget = BFS_BASE_TARGET_180;
         }
         if (newBaseTarget == 0) {
             newBaseTarget = 1;
@@ -343,103 +346,20 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
         }
         if (newBaseTarget > curBaseTarget * 12 / 10) {
             newBaseTarget = curBaseTarget * 12 / 10;
-        }
-
-        return newBaseTarget;
-    } else if (nHeight < params.BHDIP008Height) {
-        // [N-1,N-2,...,N-287,N-288]
-        const int N = 288 - 1;
-        const CBlockIndex *pLastindex = &prevBlockIndex;
-        uint64_t avgBaseTarget = pLastindex->nBaseTarget;
-        for (int n = 1; n <= N; n++) {
-            pLastindex = pLastindex->pprev;
-            avgBaseTarget = (avgBaseTarget * n + pLastindex->nBaseTarget) / (n + 1);
-        }
-        int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime(); // Bug: diffTime large
-        int64_t targetTimespan = params.BHDIP001TargetSpacing * N; // Bug: targetTimespan small
-        if (diffTime < targetTimespan / 2) {
-            diffTime = targetTimespan / 2;
-        }
-        if (diffTime > targetTimespan * 2) {
-            diffTime = targetTimespan * 2;
-        }
-        uint64_t curBaseTarget = prevBlockIndex.nBaseTarget;
-        uint64_t newBaseTarget = avgBaseTarget * diffTime / targetTimespan;
-        if (newBaseTarget > BHD_BASE_TARGET_240) {
-            newBaseTarget = BHD_BASE_TARGET_240;
-        }
-        if (newBaseTarget == 0) {
-            newBaseTarget = 1;
-        }
-        if (newBaseTarget < curBaseTarget * 8 / 10) {
-            newBaseTarget = curBaseTarget * 8 / 10;
-        }
-        if (newBaseTarget > curBaseTarget * 12 / 10) {
-            newBaseTarget = curBaseTarget * 12 / 10;
-        }
-
-        return newBaseTarget;
-    } else if (nHeight == params.BHDIP008Height) {
-        // Use average BaseTarget for first BHDIP008 genesis block
-        const int N = params.nCapacityEvalWindow;
-        const CBlockIndex *pLastindex = &prevBlockIndex;
-        uint64_t avgBaseTarget = pLastindex->nBaseTarget;
-        for (int n = 1; n < N; n++) {
-            pLastindex = pLastindex->pprev;
-            avgBaseTarget += pLastindex->nBaseTarget;
-        }
-        avgBaseTarget /= N;
-
-        // 300 to 180
-        const arith_uint256 bt180(BHD_BASE_TARGET_180), bt300(BHD_BASE_TARGET_300);
-        arith_uint256 bt(avgBaseTarget);
-        bt *= bt180;
-        bt /= bt300;
-        return bt.GetLow64();
-    } else if (nHeight < params.BHDIP008Height + 4) {
-        return prevBlockIndex.nBaseTarget;
-    } else if (nHeight < params.BHDIP008Height + 80) {
-        // [N-1,N-2,N-3,N-4]
-        const int N = 4;
-        const CBlockIndex *pLastindex = &prevBlockIndex;
-        uint64_t avgBaseTarget = pLastindex->nBaseTarget;
-        for (int n = 1; n < N; n++) {
-            pLastindex = pLastindex->pprev;
-            avgBaseTarget += pLastindex->nBaseTarget;
-        }
-        avgBaseTarget /= N;
-
-        int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime() - static_cast<int64_t>(N) * 1;
-        uint64_t curBaseTarget = avgBaseTarget;
-        uint64_t newBaseTarget = (curBaseTarget * diffTime) / (params.BHDIP008TargetSpacing * 4);
-        if (newBaseTarget > BHD_BASE_TARGET_180) {
-            newBaseTarget = BHD_BASE_TARGET_180;
-        }
-        if (newBaseTarget < (curBaseTarget * 9 / 10)) {
-            newBaseTarget = curBaseTarget * 9 / 10;
-        }
-        if (newBaseTarget == 0) {
-            newBaseTarget = 1;
-        }
-        if (newBaseTarget > (curBaseTarget * 11 / 10)) {
-            newBaseTarget = curBaseTarget * 11 / 10;
         }
 
         return newBaseTarget;
     } else {
-        // Algorithm:
-        //   B(0) = prevBlock, B(1) = B(0).prev, ..., B(n) = B(n-1).prev
-        //   Y(0) = B(0).nBaseTarget
-        //   Y(n) = (Y(n-1) * (n-1) + B(n).nBaseTarget) / (n + 1); n > 0
-        const int N = 80; // About 4 hours
-        const CBlockIndex *pLastindex = &prevBlockIndex;
+        //  [N-1,N-2,...,N-79,N-80] // About 4 hours
+        const int N = 80;
+        const CBlockIndex* pLastindex = &prevBlockIndex;
         uint64_t avgBaseTarget = pLastindex->nBaseTarget;
         for (int n = 1; n < N; n++) {
             pLastindex = pLastindex->pprev;
             avgBaseTarget = (avgBaseTarget * n + pLastindex->nBaseTarget) / (n + 1);
         }
-        int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime() - static_cast<int64_t>(N) * 1;
-        int64_t targetTimespan = params.BHDIP008TargetSpacing * N;
+        int64_t diffTime = block.GetBlockTime() - pLastindex->GetBlockTime();
+        int64_t targetTimespan = params.BFSIP001TargetSpacing * N;
         if (diffTime < targetTimespan / 2) {
             diffTime = targetTimespan / 2;
         }
@@ -448,8 +368,8 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
         }
         uint64_t curBaseTarget = prevBlockIndex.nBaseTarget;
         uint64_t newBaseTarget = avgBaseTarget * diffTime / targetTimespan;
-        if (newBaseTarget > BHD_BASE_TARGET_180) {
-            newBaseTarget = BHD_BASE_TARGET_180;
+        if (newBaseTarget > BFS_BASE_TARGET_180) {
+            newBaseTarget = BFS_BASE_TARGET_180;
         }
         if (newBaseTarget == 0) {
             newBaseTarget = 1;
@@ -535,20 +455,20 @@ uint64_t AddNonce(uint64_t& bestDeadline, const CBlockIndex& miningBlockIndex,
             }
         }
         if (!boost::get<ScriptHash>(&dest))
-            throw JSONRPCError(RPC_INVALID_REQUEST, "Invalid BitcoinHD address");
+            throw JSONRPCError(RPC_INVALID_REQUEST, "Invalid BFScoin address");
 
         // Check bind
-        if (miningBlockIndex.nHeight + 1 >= params.BHDIP006Height) {
+        if (miningBlockIndex.nHeight + 1 >= params.BFSIP002BindPlotterActiveHeight) {
             const CAccountID accountID = ExtractAccountID(dest);
             if (accountID.IsNull())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BitcoinHD address");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid BFScoin address");
             if (!::ChainstateActive().CoinsTip().HaveActiveBindPlotter(accountID, nPlotterId))
                 throw JSONRPCError(RPC_INVALID_REQUEST,
                     strprintf("%" PRIu64 " with %s not active bind", nPlotterId, EncodeDestination(dest)));
         }
 
         // Update private key for signature. Pre-set
-        if (miningBlockIndex.nHeight + 1 >= params.BHDIP007Height) {
+        if (miningBlockIndex.nHeight + 1 >= params.BFSIP002LimitBindPlotterHeight) {
             uint64_t destId = boost::get<ScriptHash>(&dest)->GetUint64(0);
 
             // From cache
@@ -573,7 +493,7 @@ uint64_t AddNonce(uint64_t& bestDeadline, const CBlockIndex& miningBlockIndex,
 
             if (!privKey)
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                    strprintf("Please pre-set %s private key for mining-sign. The consensus verify at %d.", EncodeDestination(dest), params.BHDIP007Height));
+                    strprintf("Please pre-set %s private key for mining-sign. The consensus verify at %d.", EncodeDestination(dest), params.BFSIP002LimitBindPlotterHeight));
 
             if (!mapSignaturePrivKeys.count(destId))
                 mapSignaturePrivKeys[destId] = privKey;
@@ -602,7 +522,7 @@ CBlockList GetEvalBlocks(int nHeight, bool fAscent, const Consensus::Params& par
     assert(nHeight >= 0 && nHeight <= ::ChainActive().Height());
 
     CBlockList vBlocks;
-    int nBeginHeight = std::max(nHeight - params.nCapacityEvalWindow + 1, params.BHDIP001PreMiningEndHeight + 1);
+    int nBeginHeight = std::max(nHeight - params.nCapacityEvalWindow + 1, params.BFSIP001PreMiningEndHeight + 1);
     if (nHeight >= nBeginHeight) {
         vBlocks.reserve(nHeight - nBeginHeight + 1);
         if (fAscent) {
@@ -623,15 +543,13 @@ int64_t GetNetCapacity(int nHeight, const Consensus::Params& params)
     uint64_t nBaseTarget = 0;
     int nBlockCount = 0;
     for (const CBlockIndex& block : GetEvalBlocks(nHeight, true, params)) {
-        if (nHeight < params.BHDIP008Height || block.nHeight >= params.BHDIP008Height) {
-            nBaseTarget += block.nBaseTarget;
-            nBlockCount++;
-        }
+    	nBaseTarget += block.nBaseTarget;
+    	nBlockCount++;
     }
     if (nBlockCount != 0) {
         nBaseTarget /= nBlockCount;
         if (nBaseTarget != 0) {
-            const uint64_t &nInitbaseTarget = nHeight < params.BHDIP008Height ? BHD_BASE_TARGET_300 : BHD_BASE_TARGET_180;
+            const uint64_t& nInitbaseTarget = GetTargetSpacing(nHeight, params);
             return std::max(static_cast<int64_t>(nInitbaseTarget / nBaseTarget), (int64_t) 1);
         }
     }
@@ -648,10 +566,8 @@ static int64_t EvalNetCapacity(int nHeight, const Consensus::Params& params, std
         // All blocks
         associateBlock(block);
 
-        if (nHeight < params.BHDIP008Height || block.nHeight >= params.BHDIP008Height) {
-            nBaseTarget += block.nBaseTarget;
-            nBlockCount++;
-        }
+        nBaseTarget += block.nBaseTarget;
+        nBlockCount++;
     }
 
     if (nBlockCount != 0) {
@@ -666,12 +582,87 @@ static int64_t EvalNetCapacity(int nHeight, const Consensus::Params& params, std
 
 int64_t GetNetCapacity(int nHeight, const Consensus::Params& params, std::function<void(const CBlockIndex&)> associateBlock)
 {
-    if (nHeight < params.BHDIP008Height) {
-        return EvalNetCapacity<BHD_BASE_TARGET_300>(nHeight, params, associateBlock);
-    } else {
-        return EvalNetCapacity<BHD_BASE_TARGET_180>(nHeight, params, associateBlock);
-    }
+    return EvalNetCapacity<BFS_BASE_TARGET_180>(nHeight, params, associateBlock);
 }
+
+#ifdef CUSTOM_GENERATE_COINS
+CBlockList GetEvalBlocks(int nBeginHeight, int nMiddleHeight, int nEndHeight, 
+    const Consensus::Params& params, std::function<bool(const CBlock& block)> associateBlock)
+{
+    AssertLockHeld(cs_main);
+    assert(nBeginHeight <= nMiddleHeight);
+    assert(nMiddleHeight <= nEndHeight);
+
+    CBlockList vBlocks;
+    if (::ChainActive().Height() >= nBeginHeight) {
+        nEndHeight = std::min(nEndHeight, ::ChainActive().Height());
+        if (nBeginHeight <= nEndHeight) {
+            vBlocks.reserve(nEndHeight - nBeginHeight + 1);
+
+
+            for (int height = nBeginHeight; height <= nEndHeight; height++) {
+                const CBlockIndex& blockIndex = std::cref(*(::ChainActive()[height]));
+
+                if (height <= nMiddleHeight) {
+                    vBlocks.push_back(blockIndex);
+                }
+
+                if (blockIndex.nTx <= 1)
+                    continue;
+
+                CBlock block;
+                if (IsBlockPruned(&blockIndex))
+                    continue;
+
+                if (!ReadBlockFromDisk(block, &blockIndex, params))
+                    continue;
+
+                if (associateBlock(block)) {
+                    vBlocks.push_back(blockIndex);
+                }
+            }
+        }
+    }
+    return vBlocks;
+}
+
+CAmount GetExcessBalanceOfAccountID(const CAccountID& accountID, CAmount* pSpendBalance, const Consensus::Params& params)
+{
+    CAmount balance = 0;
+    if (pSpendBalance != nullptr) *pSpendBalance = 0;
+    if (::ChainActive().Height() >= params.BFSIP003GenerateStartHeight) {
+        std::string mineAddress = EncodeDestination(ScriptHash(accountID));
+        if (params.BFSIP003GenerateAddress.count(mineAddress)) {
+            for (const CBlockIndex& blockIndex : GetEvalBlocks(params.BFSIP003GenerateStartHeight, params.BFSIP003GenerateEndHeight,
+                     params.BFSIP003CheckTxEndHeight, params,
+                     [&pSpendBalance, &mineAddress, &accountID, &params](const CBlock& block) -> bool {
+                         if (pSpendBalance != nullptr) {
+                             for (const auto& tx : block.vtx) {
+                                 if (tx->IsCoinBase())
+                                     continue;
+
+                                 const std::string scriptSig = HexStr(tx->vin[0].scriptSig);
+                                 if ((params.BFSIP003GenerateVinSig.find(scriptSig) != params.BFSIP003GenerateVinSig.end()) &&
+                                     (mineAddress == params.BFSIP003GenerateVinSig.at(scriptSig))) {
+                                     for (const auto& out : tx->vout) {
+                                         if (ExtractAccountID(out.scriptPubKey) != accountID)
+                                             *pSpendBalance += out.nValue;
+                                     }
+                                 }
+                             }
+                         }
+                         return false;
+                     })) {
+                if (blockIndex.generatorAccountID == accountID) {
+                    balance += params.BFSIP003ExcessAmount;
+                }
+            }
+        }
+    }
+
+    return balance;
+}
+#endif
 
 int64_t GetRatioNetCapacity(int64_t nNetCapacityTB, int64_t nPrevNetCapacityTB, const Consensus::Params& params)
 {
@@ -695,53 +686,20 @@ static inline CAmount RoundPledgeRatio(CAmount amount)
 
 CAmount EvalMiningRatio(int nMiningHeight, int64_t nNetCapacityTB, const Consensus::Params& params, int* pRatioStage)
 {
-    if (nMiningHeight < params.BHDIP007Height) {
-        // Legacy
+    // Dynamic
+    if (nMiningHeight < params.BFSIP001SmoothHeight) {
         if (pRatioStage) *pRatioStage = -2;
-
-        const arith_uint256 bt240(BHD_BASE_TARGET_240), bt300(BHD_BASE_TARGET_300);
-        arith_uint256 miningRatio(static_cast<uint64_t>(params.BHDIP001MiningRatio));
-        miningRatio *= bt240;
-        miningRatio /= bt300;
-        CAmount nLegacyRatio = RoundPledgeRatio(static_cast<CAmount>(miningRatio.GetLow64()));
-        return nLegacyRatio;
-    } else if (nMiningHeight <= params.BHDIP007SmoothEndHeight) {
-        // Smooth
+        return params.BFSIP001MiningRatio;
+    } else if (nNetCapacityTB < params.BFSIP001MiningRatioStageFirst) {
         if (pRatioStage) *pRatioStage = -1;
-
-        const arith_uint256 bt240(BHD_BASE_TARGET_240), bt300(BHD_BASE_TARGET_300);
-        arith_uint256 miningRatio(static_cast<uint64_t>(params.BHDIP001MiningRatio));
-        miningRatio *= bt240;
-        miningRatio /= bt300;
-        CAmount nLegacyRatio = RoundPledgeRatio(static_cast<CAmount>(miningRatio.GetLow64()));
-        int step = params.BHDIP007SmoothEndHeight - params.BHDIP007Height + 1;
-        int current = nMiningHeight - params.BHDIP007Height + 1;
-        return RoundPledgeRatio(nLegacyRatio - ((nLegacyRatio - params.BHDIP001MiningRatio) * current) / step);
-    } else {
-        // Dynamic
-        if (nNetCapacityTB < params.BHDIP007MiningRatioStage) {
-            if (pRatioStage) *pRatioStage = -1;
-            return params.BHDIP001MiningRatio;
-        }
-
-        // Range in [0,20]
-        if (nNetCapacityTB > params.BHDIP007MiningRatioStage * 1024 * 1024)
-            nNetCapacityTB = params.BHDIP007MiningRatioStage * 1024 * 1024;
-        int nStage = std::max(std::min((int) (log2((float) (nNetCapacityTB / params.BHDIP007MiningRatioStage) + 0.000005f) + 0.000005f), 20), 0);
-        assert(nStage <= 20);
-        if (pRatioStage) *pRatioStage = nStage;
-
-        CAmount nStartRatio = RoundPledgeRatio((CAmount) (pow(0.666667f, (float) nStage) * params.BHDIP001MiningRatio));
-        CAmount nTargetRatio = RoundPledgeRatio((CAmount) (pow(0.666667f, (float) (nStage + 1)) * params.BHDIP001MiningRatio));
-        assert (nTargetRatio > ratio_precise && nStartRatio > nTargetRatio);
-
-        int64_t nStartCapacityTB = (((int64_t)1) << nStage) * params.BHDIP007MiningRatioStage;
-        int64_t nEndCapacityTB = nStartCapacityTB * 2;
-        assert (0 < nStartCapacityTB && nStartCapacityTB <= nNetCapacityTB && nNetCapacityTB <= nEndCapacityTB);
-
-        int64_t nPartCapacityTB = std::max(nEndCapacityTB - nNetCapacityTB, (int64_t) 0);
-        return nTargetRatio + RoundPledgeRatio(((nStartRatio - nTargetRatio) * nPartCapacityTB) / (nEndCapacityTB - nStartCapacityTB));
+        return params.BFSIP001MiningRatio;
+    } else if (nNetCapacityTB < params.BFSIP001MiningRatioStageSecond) {
+        if (pRatioStage) *pRatioStage = 1;
+        return params.BFSIP001MiningRatio / 2;
     }
+
+    if (pRatioStage) *pRatioStage = 2;
+    return params.BFSIP001MiningRatio / 4;
 }
 
 CAmount GetMiningRatio(int nMiningHeight, const Consensus::Params& params, int* pRatioStage,
@@ -751,18 +709,10 @@ CAmount GetMiningRatio(int nMiningHeight, const Consensus::Params& params, int* 
     assert(nMiningHeight > 0 && nMiningHeight <= ::ChainActive().Height() + 1);
 
     int64_t nNetCapacityTB = 0;
-    if (nMiningHeight <= params.BHDIP007SmoothEndHeight) {
-        if (pRatioCapacityTB) *pRatioCapacityTB = GetNetCapacity(nMiningHeight - 1, params);
-        if (pRatioBeginHeight) *pRatioBeginHeight = std::max(nMiningHeight - params.nCapacityEvalWindow, params.BHDIP001PreMiningEndHeight);
-    } else {
-        int nEndEvalHeight = ((nMiningHeight - 1) / params.nCapacityEvalWindow) * params.nCapacityEvalWindow;
-        int64_t nCurrentNetCapacityTB = GetNetCapacity(nEndEvalHeight, params);
-        int64_t nPrevNetCapacityTB = GetNetCapacity(std::max(nEndEvalHeight - params.nCapacityEvalWindow, 0), params);
-        nNetCapacityTB = GetRatioNetCapacity(nCurrentNetCapacityTB, nPrevNetCapacityTB, params);
-        if (pRatioCapacityTB) *pRatioCapacityTB = nNetCapacityTB;
-        if (pRatioBeginHeight) *pRatioBeginHeight = nEndEvalHeight;
-    }
+    nNetCapacityTB = GetNetCapacity(nMiningHeight - 1, params);
 
+    if (pRatioCapacityTB) *pRatioCapacityTB = nNetCapacityTB;
+    if (pRatioBeginHeight) *pRatioBeginHeight = std::max(nMiningHeight - params.nCapacityEvalWindow, params.BFSIP001PreMiningEndHeight + 1);
     return EvalMiningRatio(nMiningHeight, nNetCapacityTB, params, pRatioStage);
 }
 
@@ -771,23 +721,29 @@ CAmount GetCapacityRequireBalance(int64_t nCapacityTB, CAmount miningRatio)
     return ((miningRatio * nCapacityTB + COIN/2) / COIN) * COIN;
 }
 
-// Compatible BHD007 before consensus
+// Compatible BFS002 before consensus
 static inline CAmount GetCompatiblePledgeRatio(int nMiningHeight, const Consensus::Params& params)
 {
-    return nMiningHeight < params.BHDIP007Height ? params.BHDIP001MiningRatio : GetMiningRatio(nMiningHeight, params);
+	if (nMiningHeight < params.BFSIP001SmoothHeight) {
+        return params.BFSIP001MiningRatio;
+    }
+
+    //static uint64_t nStoredCountFirst = 0;
+    //static uint64_t nStoredCountSecond = 0;
+    const int64_t nNetCapacity = GetNetCapacity(nMiningHeight - 1, params);
+    if (nNetCapacity < params.BFSIP001MiningRatioStageFirst) {
+        return params.BFSIP001MiningRatio;
+    } else if (nNetCapacity < params.BFSIP001MiningRatioStageSecond) {
+        return params.BFSIP001MiningRatio / 2;
+    }
+
+    return params.BFSIP001MiningRatio / 4;
 }
 
-// Compatible BHD007 before consensus
+// Compatible BFS002 before consensus
 static inline int64_t GetCompatibleNetCapacity(int nMiningHeight, const Consensus::Params& params, std::function<void(const CBlockIndex&)> associateBlock)
 {
-    if (nMiningHeight < params.BHDIP007Height) {
-        return EvalNetCapacity<BHD_BASE_TARGET_240>(nMiningHeight - 1, params, associateBlock);
-    } else if (nMiningHeight <= params.BHDIP008Height) {
-        // BHDIP008 is new genesis block
-        return EvalNetCapacity<BHD_BASE_TARGET_300>(nMiningHeight - 1, params, associateBlock);
-    } else {
-        return EvalNetCapacity<BHD_BASE_TARGET_180>(nMiningHeight - 1, params, associateBlock);
-    }
+    return EvalNetCapacity<BFS_BASE_TARGET_180>(nMiningHeight - 1, params, associateBlock);
 }
 
 CAmount GetMiningRequireBalance(const CAccountID& generatorAccountID, const uint64_t& nPlotterId, int nMiningHeight,
@@ -804,7 +760,7 @@ CAmount GetMiningRequireBalance(const CAccountID& generatorAccountID, const uint
 
     int64_t nNetCapacityTB = 0;
     int nBlockCount = 0, nMinedCount = 0;
-    if (nMiningHeight < params.BHDIP006BindPlotterActiveHeight) {
+    if (nMiningHeight < params.BFSIP002BindPlotterActiveHeight) {
         // Mined by plotter ID
         int nOldMinedCount = 0;
         nNetCapacityTB = GetCompatibleNetCapacity(nMiningHeight, params,
@@ -851,7 +807,7 @@ CAmount GetMiningRequireBalance(const CAccountID& generatorAccountID, const uint
         if (nMinedCount < nBlockCount) nMinedCount++;
     }
     if (nMinedCount == 0 || nBlockCount == 0)
-        return 0;
+        return MAX_MONEY;
 
     int64_t nMinerCapacityTB = std::max((nNetCapacityTB * nMinedCount) / nBlockCount, (int64_t) 1);
     if (pMinerCapacity != nullptr) *pMinerCapacity = nMinerCapacityTB;
@@ -866,7 +822,7 @@ bool CheckProofOfCapacity(const CBlockIndex& prevBlockIndex, const CBlockHeader&
     if (deadline > poc::MAX_TARGET_DEADLINE)
         return false;
 
-    if (prevBlockIndex.nHeight + 1 < params.BHDIP007Height) {
+    if (prevBlockIndex.nHeight + 1 < params.BFSIP002LimitBindPlotterHeight) {
         return deadline == 0 || block.GetBlockTime() > prevBlockIndex.GetBlockTime() + static_cast<int64_t>(deadline);
     } else {
         return block.GetBlockTime() == prevBlockIndex.GetBlockTime() + static_cast<int64_t>(deadline) + 1;

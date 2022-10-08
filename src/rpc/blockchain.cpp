@@ -13,6 +13,11 @@
 #include <node/coinstats.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+
+#ifdef CUSTOM_GENERATE_COINS
+#include <key_io.h>
+#endif
+
 #include <hash.h>
 #include <index/blockfilterindex.h>
 #include <poc/poc.h>
@@ -96,6 +101,7 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
     result.pushKV("baseTarget", (uint64_t)blockindex->nBaseTarget);
     result.pushKV("plotterId", (uint64_t)blockindex->nPlotterId);
+    result.pushKV("plotterCapacity", (uint64_t)blockindex->nPledgeCapacity);
     result.pushKV("nonce", (uint64_t)blockindex->nNonce);
     result.pushKV("generationSignature", HexStr(blockindex->GetGenerationSignature()));
     if (blockindex->pprev) {
@@ -105,7 +111,7 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
         result.pushKV("deadline", (uint64_t)0);
     }
     result.pushKV("generator", HexStr(blockindex->generatorAccountID));
-    if (blockindex->nHeight >= Params().GetConsensus().BHDIP007Height) {
+    if (blockindex->nHeight >= Params().GetConsensus().BFSIP002LimitBindPlotterHeight) {
         result.pushKV("pubkey", HexStr(blockindex->vchPubKey));
         result.pushKV("signature", HexStr(blockindex->vchSignature));
     }
@@ -154,6 +160,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
     result.pushKV("baseTarget", (uint64_t)blockindex->nBaseTarget);
     result.pushKV("plotterId", (uint64_t)blockindex->nPlotterId);
+    result.pushKV("plotterCapacity", (uint64_t)blockindex->nPledgeCapacity);
     result.pushKV("nonce", (uint64_t)blockindex->nNonce);
     result.pushKV("generationSignature", HexStr(blockindex->GetGenerationSignature()));
     if (blockindex->pprev) {
@@ -163,7 +170,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
         result.pushKV("deadline", (uint64_t)0);
     }
     result.pushKV("generator", HexStr(blockindex->generatorAccountID));
-    if (blockindex->nHeight >= Params().GetConsensus().BHDIP007Height) {
+    if (blockindex->nHeight >= Params().GetConsensus().BFSIP002LimitBindPlotterHeight) {
         result.pushKV("pubkey", HexStr(blockindex->vchPubKey));
         result.pushKV("signature", HexStr(blockindex->vchSignature));
     }
@@ -871,6 +878,7 @@ static UniValue getblock(const JSONRPCRequest& request)
             "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
             "  \"baseTarget\" : xxx,    (numeric) The baseTarget\n"
             "  \"plotterId\" : xxx,     (numeric) The plotter Id\n"
+            "  \"plotterCapacity\" : xxx,     (numeric) The plotter capacity\n"
             "  \"nonce\" : n,           (numeric) The nonce\n"
             "  \"generationSignature\" : \"hash\",  (string) The generation signature\n"
             "  \"deadline\" : ttt,      (numeric) The block deadline\n"
@@ -931,6 +939,83 @@ static UniValue getblock(const JSONRPCRequest& request)
     }
 
     return blockToJSON(block, tip, pblockindex, verbosity >= 2);
+}
+
+static UniValue getblocksnearly(const JSONRPCRequest& request)
+{
+    RPCHelpMan{
+        "getblocksnearly","",
+        {
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The starting block hash"},
+        },
+        {
+            RPCResult{"[\n"
+                "{\n"
+                "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
+                "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
+                "  \"size\" : n,            (numeric) The block size\n"
+                "  \"strippedsize\" : n,    (numeric) The block size excluding witness data\n"
+                "  \"weight\" : n           (numeric) The block weight as defined in BIP 141\n"
+                "  \"height\" : n,          (numeric) The block height or index\n"
+                "  \"version\" : n,         (numeric) The block version\n"
+                "  \"versionHex\" : \"00000000\", (string) The block version formatted in hexadecimal\n"
+                "  \"merkleroot\" : \"xxxx\", (string) The merkle root\n"
+                "  \"tx\" : [               (array of Objects) The transactions in the format of the getrawtransaction RPC.\n"
+                "         ,...\n"
+                "  ],\n"
+                "  \"time\" : ttt,          (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
+                "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
+                "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
+                "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
+                "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
+                "  \"baseTarget\" : xxx,    (numeric) The baseTarget\n"
+                "  \"plotterId\" : xxx,     (numeric) The plotter Id\n"
+                "  \"plotterCapacity\" : xxx,     (numeric) The plotter capacity\n"
+                "  \"nonce\" : n,           (numeric) The nonce\n"
+                "  \"generationSignature\" : \"hash\",  (string) The generation signature\n"
+                "  \"deadline\" : ttt,      (numeric) The block deadline\n"
+                "  \"generator\" : \"hash\",(string) The generator\n"
+                "  \"pubkey\" : \"hash\",   (string) The signature public key\n"
+                "  \"signature\" : \"hash\",(string) The signature of generator\n"
+                "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
+                "  \"nextblockhash\" : \"hash\"       (string) The hash of the next block\n"
+                "}\n"
+                "......"
+                "]"},
+        },
+        RPCExamples{
+            HelpExampleCli("getblocksnearly", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
+            + HelpExampleRpc("getblocksnearly", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")},
+            }.Check(request);
+
+    uint256 hash(ParseHashV(request.params[0], "blockhash"));
+
+    CBlock block;
+    const CBlockIndex* pblockindex;
+    const CBlockIndex* tip;
+    {
+        LOCK(cs_main);
+        pblockindex = LookupBlockIndex(hash);
+        tip = ::ChainActive().Tip();
+
+        if (!pblockindex) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Starting block not found");
+        }
+    }
+
+    UniValue result(UniValue::VARR);
+    int nCount = 0;
+    const CBlockIndex* pnext = tip->GetAncestor(pblockindex->nHeight + 1);
+    while ((pnext && pnext->pprev == pblockindex) && nCount < 100) { // max 100
+        block = GetBlockChecked(pnext);
+        result.push_back(blockToJSON(block, tip, pnext, true));
+        
+        ++nCount;
+        pblockindex = pnext;
+        pnext = tip->GetAncestor(pblockindex->nHeight + 1);
+    }
+
+    return result;
 }
 
 static UniValue pruneblockchain(const JSONRPCRequest& request)
@@ -1027,6 +1112,24 @@ static UniValue gettxoutsetinfo(const JSONRPCRequest& request)
         ret.pushKV("bogosize", (int64_t)stats.nBogoSize);
         ret.pushKV("hash_serialized_2", stats.hashSerialized.GetHex());
         ret.pushKV("disk_size", stats.nDiskSize);
+
+        #ifdef CUSTOM_GENERATE_COINS
+        CAmount excessAmount = 0;
+        if (::ChainActive().Height() >= Params().GetConsensus().BFSIP003GenerateStartHeight) {
+            int nEndHeight = std::min(Params().GetConsensus().BFSIP003GenerateEndHeight, ::ChainActive().Height());
+
+            for (int nHeight = Params().GetConsensus().BFSIP003GenerateStartHeight; nHeight <= nEndHeight; ++nHeight) {
+                std::string mineAddress = EncodeDestination(ScriptHash(::ChainActive()[nHeight]->generatorAccountID));
+                if (Params().GetConsensus().BFSIP003GenerateAddress.count(mineAddress)) {
+                    excessAmount += Params().GetConsensus().BFSIP003ExcessAmount;
+                }
+            }
+        }
+        if (excessAmount != 0) {
+            stats.nTotalAmount -= excessAmount;
+        }
+        #endif
+
         ret.pushKV("total_amount", ValueFromAmount(stats.nTotalAmount));
     } else {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Unable to read UTXO set");
@@ -1104,6 +1207,13 @@ UniValue gettxout(const JSONRPCRequest& request)
     } else {
         ret.pushKV("confirmations", (int64_t)(pindex->nHeight - coin.nHeight + 1));
     }
+
+    #ifdef CUSTOM_GENERATE_COINS
+    if (coin.IsCoinBase() && (coin.out.nValue >= Params().GetConsensus().BFSIP003ExcessAmount)) {
+        ret.pushKV("value", ValueFromAmount(coin.out.nValue - Params().GetConsensus().BFSIP003ExcessAmount));
+    } else
+    #endif
+    
     ret.pushKV("value", ValueFromAmount(coin.out.nValue));
     UniValue o(UniValue::VOBJ);
     ScriptPubKeyToUniv(coin.out.scriptPubKey, o, true);
@@ -2188,6 +2298,14 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             const Coin& coin = it.second;
             const CTxOut& txo = coin.out;
             input_txos.push_back(txo);
+
+            #ifdef CUSTOM_GENERATE_COINS
+            if (coin.IsCoinBase() && (txo.nValue >= Params().GetConsensus().BFSIP003ExcessAmount))
+            {
+                total_in += (txo.nValue - Params().GetConsensus().BFSIP003ExcessAmount);
+            }else
+            #endif
+
             total_in += txo.nValue;
 
             UniValue unspent(UniValue::VOBJ);
@@ -2195,6 +2313,13 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             unspent.pushKV("vout", (int32_t)outpoint.n);
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
             unspent.pushKV("desc", descriptors[txo.scriptPubKey]);
+
+            #ifdef CUSTOM_GENERATE_COINS
+            if (coin.IsCoinBase() && (txo.nValue >= Params().GetConsensus().BFSIP003ExcessAmount)) {
+                unspent.pushKV("amount", ValueFromAmount(txo.nValue - Params().GetConsensus().BFSIP003ExcessAmount));
+            } else
+            #endif
+
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
@@ -2293,6 +2418,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
+    { "blockchain",         "getblocksnearly",        &getblocksnearly,        {"blockhash"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {"verbose"} },

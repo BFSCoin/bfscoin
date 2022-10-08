@@ -4,7 +4,7 @@ RequestExecutionLevel highest
 SetCompressor /SOLID lzma
 
 # For legacy
-!define LegacyPackageName "BitcoinHD Chain"
+!define LegacyPackageName "BFScoin Chain"
 !define LegacyName "${LegacyPackageName} (@WINDOWS_BITS@-bit)"
 
 # General Symbol Definitions
@@ -54,9 +54,9 @@ Var StartMenuGroup
 # Installer attributes
 OutFile @abs_top_srcdir@/@PACKAGE_TARNAME@-@PACKAGE_VERSION@-win@WINDOWS_BITS@-setup.exe
 !if "@WINDOWS_BITS@" == "64"
-InstallDir $PROGRAMFILES64\BitcoinHD
+InstallDir $PROGRAMFILES64\BFScoin
 !else
-InstallDir $PROGRAMFILES\BitcoinHD
+InstallDir $PROGRAMFILES\BFScoin
 !endif
 CRCCheck on
 XPStyle on
@@ -106,15 +106,15 @@ Section -post SEC0001
     WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" DisplayVersion "@PACKAGE_VERSION@"
     WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" Publisher "${COMPANY}"
     WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" URLInfoAbout "${URL}"
-    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" DisplayIcon $INSTDIR\btchd-qt.exe
+    WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" DisplayIcon $INSTDIR\bfscoin-qt.exe
     WriteRegStr HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" UninstallString $INSTDIR\uninstall.exe
     WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" NoModify 1
     WriteRegDWORD HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${LegacyName}" NoRepair 1
     WriteRegStr HKCR "@PACKAGE_TARNAME@" "URL Protocol" ""
-    WriteRegStr HKCR "@PACKAGE_TARNAME@" "" "URL:BTCHD"
+    WriteRegStr HKCR "@PACKAGE_TARNAME@" "" "URL:BFSCOIN"
     WriteRegStr HKCR "@PACKAGE_TARNAME@\DefaultIcon" "" $INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@
     WriteRegStr HKCR "@PACKAGE_TARNAME@\shell\open\command" "" '"$INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@" "%1"'
-    # Clear "BitcoinHD Chain"
+    # Clear "BFScoin Chain"
     Delete "$SMPROGRAMS\${LegacyPackageName}\Uninstall ${LegacyName}.lnk"
     Delete "$SMPROGRAMS\${LegacyPackageName}\${LegacyName}.lnk"
     Delete "$SMPROGRAMS\${LegacyPackageName}\${LegacyPackageName} (mining, @WINDOWS_BITS@-bit).lnk"
@@ -151,7 +151,7 @@ Section -un.post UNSEC0001
     Delete /REBOOTOK "$SMPROGRAMS\$StartMenuGroup\$(^Name).lnk"
     Delete /REBOOTOK "$SMPROGRAMS\$StartMenuGroup\@PACKAGE_NAME@ (mining, @WINDOWS_BITS@-bit).lnk"
     Delete /REBOOTOK "$SMPROGRAMS\$StartMenuGroup\@PACKAGE_NAME@ (testnet, @WINDOWS_BITS@-bit).lnk"
-    Delete /REBOOTOK "$SMSTARTUP\BitcoinHD.lnk"
+    Delete /REBOOTOK "$SMSTARTUP\BFScoin.lnk"
     Delete /REBOOTOK $INSTDIR\uninstall.exe
     Delete /REBOOTOK $INSTDIR\debug.log
     Delete /REBOOTOK $INSTDIR\db.log

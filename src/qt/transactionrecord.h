@@ -131,6 +131,7 @@ public:
     CAmount credit;
     std::string comment;
     /**@}*/
+    int m_confirm_target = 6;
 
     /** Subtransaction index, for sort key */
     int idx;

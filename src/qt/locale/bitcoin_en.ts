@@ -85,12 +85,12 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>These are your BitcoinHD addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your BFScoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+5"/>
-        <source>These are your BitcoinHD addresses for receiving payments. Use the &apos;Create new receiving address&apos; button in the receive tab to create new addresses.</source>
+        <source>These are your BFScoin addresses for receiving payments. Use the &apos;Create new receiving address&apos; button in the receive tab to create new addresses.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -211,7 +211,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BHDs&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BFSs&lt;/b&gt;!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -237,7 +237,7 @@
     </message>
     <message>
         <location line="+53"/>
-        <source>Remember that encrypting your wallet cannot fully protect your BHDs from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your BFSs from being stolen by malware infecting your computer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -461,8 +461,8 @@
     </message>
     <message>
         <location line="-1023"/>
-        <source>Send coins to a BitcoinHD address</source>
-        <translation>Send coins to a BitcoinHD address</translation>
+        <source>Send coins to a BFScoin address</source>
+        <translation>Send coins to a BFScoin address</translation>
     </message>
     <message>
         <location line="+67"/>
@@ -516,13 +516,13 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>Sign messages with your BitcoinHD addresses to prove you own them</source>
-        <translation>Sign messages with your BitcoinHD addresses to prove you own them</translation>
+        <source>Sign messages with your BFScoin addresses to prove you own them</source>
+        <translation>Sign messages with your BFScoin addresses to prove you own them</translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Verify messages to ensure they were signed with specified BitcoinHD addresses</source>
-        <translation>Verify messages to ensure they were signed with specified BitcoinHD addresses</translation>
+        <source>Verify messages to ensure they were signed with specified BFScoin addresses</source>
+        <translation>Verify messages to ensure they were signed with specified BFScoin addresses</translation>
     </message>
     <message>
         <location line="+111"/>
@@ -531,8 +531,8 @@
     </message>
     <message>
         <location line="+15"/>
-        <source>&amp;Settings</source>
-        <translation>&amp;Settings</translation>
+        <source>&amp;Tools</source>
+        <translation>&amp;Tools</translation>
     </message>
     <message>
         <location line="+58"/>
@@ -546,7 +546,7 @@
     </message>
     <message>
         <location line="-257"/>
-        <source>Request payments (generates QR codes and btchd: URIs)</source>
+        <source>Request payments (generates QR codes and bfscoin: URIs)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -561,7 +561,7 @@
     </message>
     <message>
         <location line="+3"/>
-        <source>Open a btchd: URI or payment request</source>
+        <source>Open a bfscoin: URI or payment request</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -571,10 +571,10 @@
     </message>
     <message numerus="yes">
         <location line="+523"/>
-        <source>%n active connection(s) to BitcoinHD network</source>
+        <source>%n active connection(s) to BFScoin network</source>
         <translation>
-            <numerusform>%n active connection to BitcoinHD network</numerusform>
-            <numerusform>%n active connections to BitcoinHD network</numerusform>
+            <numerusform>%n active connection to BFScoin network</numerusform>
+            <numerusform>%n active connections to BFScoin network</numerusform>
         </translation>
     </message>
     <message>
@@ -662,7 +662,7 @@
     </message>
     <message>
         <location line="+8"/>
-        <source>Show the %1 help message to get a list with possible BitcoinHD command-line options</source>
+        <source>Show the %1 help message to get a list with possible BFScoin command-line options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -793,7 +793,7 @@
     </message>
     <message>
         <location filename="../bitcoin.cpp" line="+386"/>
-        <source>A fatal error occurred. BitcoinHD can no longer continue safely and will quit.</source>
+        <source>A fatal error occurred. BFScoin can no longer continue safely and will quit.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1097,7 +1097,7 @@
     </message>
     <message>
         <location line="+75"/>
-        <source>The entered address &quot;%1&quot; is not a valid BitcoinHD address.</source>
+        <source>The entered address &quot;%1&quot; is not a valid BFScoin address.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1222,8 +1222,8 @@
     </message>
     <message>
         <location filename="../intro.cpp" line="+22"/>
-        <source>BitcoinHD</source>
-        <translation type="unfinished">BitcoinHD</translation>
+        <source>BFScoin</source>
+        <translation type="unfinished">BFScoin</translation>
     </message>
     <message>
         <location line="+9"/>
@@ -1242,7 +1242,7 @@
     </message>
     <message>
         <location line="+8"/>
-        <source>%1 will download and store a copy of the BitcoinHD block chain.</source>
+        <source>%1 will download and store a copy of the BFScoin block chain.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1294,12 +1294,12 @@
     </message>
     <message>
         <location line="+119"/>
-        <source>Recent transactions may not yet be visible, and therefore your wallet&apos;s balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the BitcoinHD network, as detailed below.</source>
+        <source>Recent transactions may not yet be visible, and therefore your wallet&apos;s balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the BFScoin network, as detailed below.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+19"/>
-        <source>Attempting to spend BHDs that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend BFSs that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1555,8 +1555,8 @@
     </message>
     <message>
         <location line="+30"/>
-        <source>Automatically open the BitcoinHD client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automatically open the BitcoinHD client port on the router. This only works when your router supports UPnP and it is enabled.</translation>
+        <source>Automatically open the BFScoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Automatically open the BFScoin client port on the router. This only works when your router supports UPnP and it is enabled.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -1575,7 +1575,7 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>Connect to the BitcoinHD network through a SOCKS5 proxy.</source>
+        <source>Connect to the BFScoin network through a SOCKS5 proxy.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1623,7 +1623,7 @@
     </message>
     <message>
         <location line="+25"/>
-        <source>Connect to the BitcoinHD network through a separate SOCKS5 proxy for Tor hidden services.</source>
+        <source>Connect to the BFScoin network through a separate SOCKS5 proxy for Tor hidden services.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1763,8 +1763,8 @@
     <message>
         <location line="+62"/>
         <location line="+386"/>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the BitcoinHD network after a connection is established, but this process has not completed yet.</source>
-        <translation>The displayed information may be out of date. Your wallet automatically synchronizes with the BitcoinHD network after a connection is established, but this process has not completed yet.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the BFScoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>The displayed information may be out of date. Your wallet automatically synchronizes with the BFScoin network after a connection is established, but this process has not completed yet.</translation>
     </message>
     <message>
         <location line="-139"/>
@@ -1861,7 +1861,7 @@
     </message>
     <message>
         <location line="-531"/>
-        <source>Cannot start btchd: click-to-pay handler</source>
+        <source>Cannot start bfscoin: click-to-pay handler</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1876,7 +1876,7 @@
     </message>
     <message>
         <location line="-55"/>
-        <source>&apos;btchd://&apos; is not a valid URI. Use &apos;btchd:&apos; instead.</source>
+        <source>&apos;bfscoin://&apos; is not a valid URI. Use &apos;bfscoin:&apos; instead.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1914,7 +1914,7 @@
     </message>
     <message>
         <location line="+8"/>
-        <source>URI cannot be parsed! This can be caused by an invalid BitcoinHD address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid BFScoin address or malformed URI parameters.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2047,7 +2047,7 @@
     </message>
     <message>
         <location filename="../guiutil.cpp" line="+108"/>
-        <source>Enter a BitcoinHD address (e.g. %1)</source>
+        <source>Enter a BFScoin address (e.g. %1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2681,7 +2681,7 @@
     <message>
         <location line="-3"/>
         <location line="+46"/>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the BitcoinHD network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the BFScoin network.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3020,7 +3020,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+543"/>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for BitcoinHD transactions than the network can process.</source>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for BFScoin transactions than the network can process.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3220,7 +3220,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+101"/>
-        <source>Warning: Invalid BitcoinHD address</source>
+        <source>Warning: Invalid BFScoin address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3275,7 +3275,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+39"/>
-        <source>The BitcoinHD address to send the payment to</source>
+        <source>The BFScoin address to send the payment to</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3302,7 +3302,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="-1028"/>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less BHDs than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less BFSs than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3337,7 +3337,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+54"/>
-        <source>A message that was attached to the btchd: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the BitcoinHD network.</source>
+        <source>A message that was attached to the bfscoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the BFScoin network.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3394,12 +3394,12 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+6"/>
-        <source>You can sign messages/agreements with your addresses to prove you can receive BHDs sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <source>You can sign messages/agreements with your addresses to prove you can receive BFSs sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+18"/>
-        <source>The BitcoinHD address to sign the message with</source>
+        <source>The BFScoin address to sign the message with</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3441,8 +3441,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+21"/>
-        <source>Sign the message to prove you own this BitcoinHD address</source>
-        <translation>Sign the message to prove you own this BitcoinHD address</translation>
+        <source>Sign the message to prove you own this BFScoin address</source>
+        <translation>Sign the message to prove you own this BFScoin address</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -3472,13 +3472,13 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+21"/>
-        <source>The BitcoinHD address the message was signed with</source>
+        <source>The BFScoin address the message was signed with</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+37"/>
-        <source>Verify the message to ensure it was signed with the specified BitcoinHD address</source>
-        <translation>Verify the message to ensure it was signed with the specified BitcoinHD address</translation>
+        <source>Verify the message to ensure it was signed with the specified BFScoin address</source>
+        <translation>Verify the message to ensure it was signed with the specified BFScoin address</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -3825,6 +3825,11 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
     </message>
     <message>
         <location line="+0"/>
+        <source>Height</source>
+        <translation>Height</translation>
+    </message>
+    <message>
+        <location line="+0"/>
         <source>Type</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3930,6 +3935,11 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
         <location line="+2"/>
         <source>Date and time that the transaction was received.</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Height of transaction.</source>
+        <translation>Height of transaction.</translation>
     </message>
     <message>
         <location line="+2"/>
@@ -4099,6 +4109,11 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
         <location line="+1"/>
         <source>Date</source>
         <translation type="unfinished">Date</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Height</source>
+        <translation>Height</translation>
     </message>
     <message>
         <location line="+1"/>

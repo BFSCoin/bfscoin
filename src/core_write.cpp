@@ -194,6 +194,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
     entry.pushKV("weight", GetTransactionWeight(tx));
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
+    entry.pushKV("minconfirmations", tx.m_confirm_target);
 
     UniValue vin(UniValue::VARR);
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
@@ -227,6 +228,12 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
 
         UniValue out(UniValue::VOBJ);
 
+        #ifdef CUSTOM_GENERATE_COINS
+        if (tx.IsCoinBase() && (txout.nValue >= Params().GetConsensus().BFSIP003ExcessAmount)) {
+            out.pushKV("value", ValueFromAmount(txout.nValue - Params().GetConsensus().BFSIP003ExcessAmount));
+        } else
+        #endif
+
         out.pushKV("value", ValueFromAmount(txout.nValue));
         out.pushKV("n", (int64_t)i);
 
@@ -240,7 +247,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     if (tx.IsUniform()) {
         CDatacarrierPayloadRef payload = ExtractTransactionDatacarrier(tx, nHeight, DatacarrierTypes{DATACARRIER_TYPE_BINDPLOTTER, DATACARRIER_TYPE_POINT});
         if (payload) {
-            UniValue extra(UniValue::VOBJ);;
+            UniValue extra(UniValue::VOBJ);
             DatacarrierPayloadToUniv(payload, tx.vout[0], extra);
             entry.pushKV("extra", extra);
         }

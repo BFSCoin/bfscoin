@@ -239,6 +239,7 @@ public:
      * @return command-line argument (0 if invalid number) or default value
      */
     int64_t GetArg(const std::string& strArg, int64_t nDefault) const;
+    uint64_t GetUArg(const std::string& strArg, uint64_t nDefault) const;
 
     /**
      * Return boolean argument or default value

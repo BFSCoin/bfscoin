@@ -826,6 +826,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nBaseTarget        = diskindex.nBaseTarget;
                 pindexNew->nNonce             = diskindex.nNonce;
                 pindexNew->nPlotterId         = diskindex.nPlotterId;
+                pindexNew->nPledgeCapacity    = diskindex.nPledgeCapacity;
                 pindexNew->nStatus            = diskindex.nStatus;
                 pindexNew->nTx                = diskindex.nTx;
                 pindexNew->generatorAccountID = diskindex.generatorAccountID;

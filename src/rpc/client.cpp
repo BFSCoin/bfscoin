@@ -169,7 +169,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnodeaddresses", 0, "count"},
     { "stop", 0, "wait" },
 
-    /* BitcoinHD */
+    /* BFScoin */
     { "generatetoaddress", 0, "nblocks" },
     { "generatetoprivkey", 0, "nblocks" },
     { "dumpprivkeys", 0, "from_index"},
@@ -201,7 +201,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getplottermininginfo", 1, "verbose" },
     { "getchaintips", 0, "verbose" },
 
-    /* BitcoinHD & Burst mining compatible */
+    /* BFScoin & Burst mining compatible */
     { "submitNonce", 2, "height" },
     { "submitNonce", 4, "checkBind" },
 

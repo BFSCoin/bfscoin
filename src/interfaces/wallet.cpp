@@ -63,7 +63,7 @@ WalletTx MakeWalletTx(interfaces::Chain::Lock& locked_chain, CWallet& wallet, co
     result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();
 
-    //! for BitcoinHD point/withdraw tx
+    //! for BFScoin point/withdraw tx
     if (wtx.IsPointTx()) {
         result.tx_point_address = DecodeDestination(result.value_map["to"]);
         result.tx_point_address_is_mine = ::IsMine(wallet, result.tx_point_address);
@@ -92,10 +92,11 @@ WalletTxStatus MakeWalletTxStatus(CWallet& wallet, interfaces::Chain::Lock& lock
     result.is_coinbase = wtx.IsCoinBase();
     result.is_in_main_chain = wtx.IsInMainChain(locked_chain);
 
-    //! for BitcoinHD
+    //! for BFScoin
     result.is_unfrozen = wtx.IsUnfrozen(locked_chain);
     result.is_bindplotter_inactived = false; // TODO fill this
-
+    result.m_confirm_target = wtx.tx->m_confirm_target; // confirm number
+	
     return result;
 }
 
@@ -278,6 +279,7 @@ public:
         }
         return true;
     }
+    void setTransactionConflict(const uint256& txid) const override { m_wallet->SetTransactionConflict(txid); }
     bool transactionCanBeAbandoned(const uint256& txid) const override { return m_wallet->TransactionCanBeAbandoned(txid); }
     bool abandonTransaction(const uint256& txid) override
     {
@@ -440,7 +442,7 @@ public:
             result.unconfirmed_watch_only_balance = bal.m_watchonly_untrusted_pending;
             result.immature_watch_only_balance = bal.m_watchonly_immature;
         }
-        // for BitcoinHD
+        // for BFScoin
         result.frozen_balance = bal.m_mine_frozen;
         result.point_sent_balance = bal.m_mine_point_sent;
         result.point_received_balance = bal.m_mine_point_received;

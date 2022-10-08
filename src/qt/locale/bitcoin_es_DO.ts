@@ -66,8 +66,8 @@
         <translation>Direcciones de recepción</translation>
     </message>
     <message>
-        <source>These are your BitcoinHD addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Estas son tus direcciones BitcoinHD para realizar pagos. Verifica siempre el monto y la dirección de recepción antes de enviar monedas. </translation>
+        <source>These are your BFScoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Estas son tus direcciones BFScoin para realizar pagos. Verifica siempre el monto y la dirección de recepción antes de enviar monedas. </translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -162,8 +162,8 @@
         <translation>Confirmar cifrado de billetera</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BHDs&lt;/b&gt;!</source>
-        <translation>Atención: Si cifra su monedero y pierde la contraseña, perderá ¡&lt;b&gt;TODOS SUS BHDs&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BFSs&lt;/b&gt;!</source>
+        <translation>Atención: Si cifra su monedero y pierde la contraseña, perderá ¡&lt;b&gt;TODOS SUS BFSs&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -244,8 +244,8 @@
         <translation>Reindexando bloques en el disco...</translation>
     </message>
     <message>
-        <source>Send coins to a BitcoinHD address</source>
-        <translation>Enviar monedas a una dirección BitcoinHD</translation>
+        <source>Send coins to a BFScoin address</source>
+        <translation>Enviar monedas a una dirección BFScoin</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -288,12 +288,12 @@
         <translation>Encriptar las llaves privadas que pertenecen a tu billetera</translation>
     </message>
     <message>
-        <source>Sign messages with your BitcoinHD addresses to prove you own them</source>
-        <translation>Firma mensajes con tus direcciones BitcoinHD para probar que eres dueño de ellas</translation>
+        <source>Sign messages with your BFScoin addresses to prove you own them</source>
+        <translation>Firma mensajes con tus direcciones BFScoin para probar que eres dueño de ellas</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified BitcoinHD addresses</source>
-        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones BitcoinHD especificas</translation>
+        <source>Verify messages to ensure they were signed with specified BFScoin addresses</source>
+        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones BFScoin especificas</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -312,8 +312,8 @@
         <translation>Barra de pestañas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and btchd: URIs)</source>
-        <translation>Solicitar pagos (genera codigo QR y URL's de BitcoinHD)</translation>
+        <source>Request payments (generates QR codes and bfscoin: URIs)</source>
+        <translation>Solicitar pagos (genera codigo QR y URL's de bfscoin)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -324,8 +324,8 @@
         <translation>Muestra la lista de direcciones de recepción y etiquetas</translation>
     </message>
     <message>
-        <source>Open a btchd: URI or payment request</source>
-        <translation>Abrir un btchd: URI o petición de pago</translation>
+        <source>Open a bfscoin: URI or payment request</source>
+        <translation>Abrir un bfscoin: URI o petición de pago</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -569,8 +569,8 @@
         <translation>Usa un directorio de datos personalizado:</translation>
     </message>
     <message>
-        <source>BitcoinHD</source>
-        <translation>BitcoinHD</translation>
+        <source>BFScoin</source>
+        <translation>BFScoin</translation>
     </message>
     <message>
         <source>Error: Specified data directory "%1" cannot be created.</source>
@@ -649,8 +649,8 @@
         <translation>Experto</translation>
     </message>
     <message>
-        <source>Automatically open the BitcoinHD client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Abrir automáticamente el puerto del cliente BitcoinHD en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
+        <source>Automatically open the BFScoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Abrir automáticamente el puerto del cliente BFScoin en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -748,8 +748,8 @@
         <translation>Desde</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the BitcoinHD network after a connection is established, but this process has not completed yet.</source>
-        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red BitcoinHD después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the BFScoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red BFScoin después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
     </message>
     <message>
         <source>Available:</source>
@@ -1239,8 +1239,8 @@
         <translation>Copiar la firma actual al portapapeles del sistema</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this BitcoinHD address</source>
-        <translation>Firmar el mensaje para demostrar que se posee esta dirección BitcoinHD</translation>
+        <source>Sign the message to prove you own this BFScoin address</source>
+        <translation>Firmar el mensaje para demostrar que se posee esta dirección BFScoin</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1259,8 +1259,8 @@
         <translation>&amp;Verificar mensaje</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified BitcoinHD address</source>
-        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección BitcoinHD indicada</translation>
+        <source>Verify the message to ensure it was signed with the specified BFScoin address</source>
+        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección BFScoin indicada</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>

@@ -1219,7 +1219,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
         // Update transaction datacarrier
         bool fTxDatacarrier = false;
         int blockHeight = wtx.m_confirm.hashBlock.IsNull() ? 0 : locked_chain->getBlockHeight(wtx.m_confirm.hashBlock).get_value_or(0);
-        if (blockHeight == 0 || blockHeight >= Params().GetConsensus().BHDIP006Height) {
+        if (blockHeight == 0 || blockHeight >= Params().GetConsensus().BFSIP002Height) {
             CDatacarrierPayloadRef payload = ExtractTransactionDatacarrier(*(wtx.tx), blockHeight);
             if (!payload) {
                 // Check relevant unlock tx
@@ -1333,6 +1333,14 @@ void CWallet::LoadToWallet(CWalletTx& wtxIn)
             }
         }
     }
+    {
+        if (locked_chain) {
+            int nDepth = wtx.GetDepthInMainChain(*locked_chain);
+            if (nDepth < wtx.tx->m_confirm_target) {
+                wtx.fInMempool = true;
+            }
+        }
+    }
 }
 
 bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Status status, const uint256& block_hash, int posInBlock, bool fUpdate)
@@ -1368,6 +1376,17 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::St
         }
     }
     return false;
+}
+
+void CWallet::SetTransactionConflict(const uint256& hashTx)
+{
+    auto it = mapWallet.find(hashTx);
+    assert(it != mapWallet.end());
+    CWalletTx& wtx = it->second;
+    WalletBatch batch(*database, "r+", false);
+    wtx.setConflicted();
+    wtx.MarkDirty();
+    batch.WriteTx(wtx);
 }
 
 bool CWallet::TransactionCanBeAbandoned(const uint256& hashTx) const
@@ -1519,10 +1538,19 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
 }
 
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
+    auto locked_chain = chain().lock();
     LOCK(cs_wallet);
     auto it = mapWallet.find(ptx->GetHash());
     if (it != mapWallet.end()) {
-        it->second.fInMempool = false;
+        if (locked_chain) {
+            int nDepth = it->second.GetDepthInMainChain(*locked_chain);
+            if (nDepth >= it->second.tx->m_confirm_target)
+                it->second.fInMempool = false;
+            else
+                it->second.fInMempool = true;
+        } else {
+            LogPrintf("TransactionRemovedFromMempool:Error:locked_chain=null\n");
+        }
     }
 }
 
@@ -2541,7 +2569,7 @@ bool CWalletTx::IsTrusted(interfaces::Chain::Lock& locked_chain) const
         return false;
     }
     int nDepth = GetDepthInMainChain(locked_chain);
-    if (nDepth >= 1)
+    if (nDepth >= tx->m_confirm_target)
         return true;
     if (nDepth < 0)
         return false;
@@ -2654,11 +2682,11 @@ CWallet::Balance CWallet::GetBalance(const int min_depth, bool avoid_reuse) cons
             const int tx_depth{wtx.GetDepthInMainChain(*locked_chain)};
             const CAmount tx_credit_mine{wtx.GetAvailableCredit(*locked_chain, /* fUseCache */ true, ISMINE_SPENDABLE | reuse_filter)};
             const CAmount tx_credit_watchonly{wtx.GetAvailableCredit(*locked_chain, /* fUseCache */ true, ISMINE_WATCH_ONLY | reuse_filter)};
-            if (is_trusted && tx_depth >= min_depth) {
+            if (is_trusted && !wtx.isConflicted() && (tx_depth >= wtx.tx->m_confirm_target || m_spend_zero_conf_change)) {
                 ret.m_mine_trusted += tx_credit_mine;
                 ret.m_watchonly_trusted += tx_credit_watchonly;
             }
-            if (!is_trusted && tx_depth == 0 && wtx.InMempool()) {
+            if (!is_trusted && tx_depth >= 0 && tx_depth < wtx.tx->m_confirm_target && wtx.InMempool()) {
                 ret.m_mine_untrusted_pending += tx_credit_mine;
                 ret.m_watchonly_untrusted_pending += tx_credit_watchonly;
             }
@@ -2704,6 +2732,13 @@ void CWallet::AvailableCoins(interfaces::Chain::Lock& locked_chain, std::vector<
     bool allow_used_addresses = !IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE) || (coinControl && !coinControl->m_avoid_address_reuse);
     const int min_depth = {coinControl ? coinControl->m_min_depth : DEFAULT_MIN_DEPTH};
     const int max_depth = {coinControl ? coinControl->m_max_depth : DEFAULT_MAX_DEPTH};
+
+    std::set<CScript> disableScriptPubKey;
+    if (locked_chain.getHeight() >= Params().GetConsensus().BFSIP004Height) {
+        for (const auto& address : Params().GetConsensus().BFSIP004DisableAddress) {
+            disableScriptPubKey.insert(GetScriptForDestination(DecodeDestination(address)));
+        }
+    }
 
     for (const auto& entry : mapWallet)
     {
@@ -2769,6 +2804,12 @@ void CWallet::AvailableCoins(interfaces::Chain::Lock& locked_chain, std::vector<
 
         bool fFrozen = wtx.mapValue.count("lock") != 0;
         for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
+            if (!disableScriptPubKey.empty()) {
+                //BFSIP004 disable specific address
+                if (disableScriptPubKey.find(wtx.tx->vout[i].scriptPubKey) != disableScriptPubKey.end())
+                    continue;
+            }
+
             if (wtx.tx->vout[i].nValue < nMinimumAmount || wtx.tx->vout[i].nValue > nMaximumAmount)
                 continue;
 
@@ -3237,6 +3278,7 @@ bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std
         txNew.nVersion = nTxVersion;
 
     txNew.nLockTime = GetLocktimeForNewTransaction(chain(), locked_chain, txNew.IsUniform());
+    txNew.m_confirm_target = coin_control.m_confirm_target.get_value_or(txNew.m_confirm_target);
 
     FeeCalculation feeCalc;
     CAmount nFeeNeeded;
@@ -4723,7 +4765,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(interfaces::Chain& chain,
     }
 
     walletInstance->m_confirm_target = gArgs.GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
-    walletInstance->m_spend_zero_conf_change = gArgs.GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
+    walletInstance->m_spend_zero_conf_change = DEFAULT_SPEND_ZEROCONF_CHANGE; // gArgs.GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     walletInstance->m_signal_rbf = gArgs.GetBoolArg("-walletrbf", DEFAULT_WALLET_RBF);
 
     walletInstance->WalletLogPrintf("Wallet completed loading in %15dms\n", GetTimeMillis() - nStart);

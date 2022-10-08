@@ -47,6 +47,10 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h>
+#endif
+
 #ifdef ENABLE_OMNICORE
 #include <omnicore_api.h>
 #endif
@@ -60,7 +64,7 @@
 #include <boost/thread.hpp>
 
 #if defined(NDEBUG)
-# error "BitcoinHD cannot be compiled without assertions."
+# error "BFScoin cannot be compiled without assertions."
 #endif
 
 #define MICRO 0.000001
@@ -410,6 +414,13 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     // and when we actually call through to CheckInputs
     LOCK(pool.cs);
 
+    std::set<CScript> disableScriptPubKey;
+    if (::ChainActive().Height() >= Params().GetConsensus().BFSIP004Height) {
+        for (const auto& address : Params().GetConsensus().BFSIP004DisableAddress) {
+            disableScriptPubKey.insert(GetScriptForDestination(DecodeDestination(address)));
+        }
+    }
+
     assert(!tx.IsCoinBase());
     for (const CTxIn& txin : tx.vin) {
         const Coin& coin = view.AccessCoin(txin.prevout);
@@ -419,6 +430,12 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
         // So we just return failure if the inputs are not available here,
         // and then only have to check equivalence for available inputs.
         if (coin.IsSpent()) return false;
+
+        if (!disableScriptPubKey.empty()) {
+            if (disableScriptPubKey.find(coin.out.scriptPubKey) != disableScriptPubKey.end()) {
+                return false;
+            }
+        }
 
         const CTransactionRef& txFrom = pool.get(txin.prevout.hash);
         if (txFrom) {
@@ -1247,21 +1264,14 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     CAmount nSubsidy;
 
     int halvings;
-    if (nHeight < consensusParams.BHDIP008Height) {
-        halvings = nHeight / (consensusParams.nSubsidyHalvingInterval * 600 / consensusParams.BHDIP001TargetSpacing);
-    } else {
-        // 197568*5/3=329280, First halving height is 568288 (=197568+(700000-329280))
-        // 106848*5/3=178080, First halving height is 628768 (=106848+(700000-178080))
-        // 720*5/3=1200, First halving height is 520 (=720+(1000-1200))
-        int nEqualHeight = consensusParams.BHDIP008Height * consensusParams.BHDIP001TargetSpacing / consensusParams.BHDIP008TargetSpacing;
-        halvings = (nHeight - consensusParams.BHDIP008Height + nEqualHeight) / (consensusParams.nSubsidyHalvingInterval * 600 / consensusParams.BHDIP008TargetSpacing);
-    }
+    halvings = nHeight / (consensusParams.nSubsidyHalvingInterval * 180 / consensusParams.BFSIP001TargetSpacing);
+
     if (halvings >= 64) {
         // Force block reward to zero when right shift is undefined.
         nSubsidy = 0;
     } else {
-        nSubsidy = 50 * COIN * Consensus::GetTargetSpacing(nHeight, consensusParams) / 600;
-        // Subsidy is cut in half every 210,000 blocks / 10minutes which will occur approximately every 4 years.
+        nSubsidy = 36 * COIN * Consensus::GetTargetSpacing(nHeight, consensusParams) / 180; //36*COIN per block
+        // Subsidy is cut in half every 525600 blocks / 3minutes which will occur approximately every 3 years.
         nSubsidy >>= halvings;
     }
 
@@ -1271,129 +1281,84 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 static CAmount GetBlockAccumulateSubsidy(const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
 {
     CAmount accumulate = 0;
-    for (const CBlockIndex* pindex = pindexPrev;
-            (pindex != nullptr) && (pindex->nStatus & BLOCK_UNCONDITIONAL) && (pindex->nHeight >= consensusParams.BHDIP008Height);
-            pindex = pindex->pprev) {
-        int nPeriod = (pindex->nHeight - consensusParams.BHDIP008Height) / consensusParams.BHDIP008FundRoyaltyDecreasePeriodForLowMortgage;
-        int fundRatio = consensusParams.BHDIP008FundRoyaltyForLowMortgage - consensusParams.BHDIP008FundRoyaltyDecreaseForLowMortgage * nPeriod;
-        if (fundRatio < consensusParams.BHDIP001FundRoyaltyForFullMortgage)
-            fundRatio = consensusParams.BHDIP001FundRoyaltyForFullMortgage;
-        assert(fundRatio <= consensusParams.BHDIP001FundRoyaltyForLowMortgage);
-        accumulate += (GetBlockSubsidy(pindex->nHeight, consensusParams) * (consensusParams.BHDIP001FundRoyaltyForLowMortgage - fundRatio)) / 1000;
-    }
     return accumulate;
 }
 
-BlockReward GetBlockReward(const CBlockIndex* pindexPrev, const CAmount& nFees, const CAccountID& generatorAccountID, const uint64_t& nPlotterId, const CCoinsViewCache& view, const Consensus::Params& consensusParams)
+
+BlockReward GetBlockReward(const CBlockIndex* pindexPrev, int64_t* pMinerCapacityTB, const CAmount& nFees, const CAccountID& generatorAccountID, const uint64_t& nPlotterId, const CCoinsViewCache& view, const Consensus::Params& consensusParams)
 {
     const int nHeight = pindexPrev ? (pindexPrev->nHeight + 1) : 0;
     const CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
 
     // Calc miner reward and fund royalty
-    BlockReward reward = { 0, 0, 0, 0, false };
-    if (nHeight <= consensusParams.BHDIP001PreMiningEndHeight)
-    {
-        // Fund pre-mining
-        reward.fund = nSubsidy + nFees;
-    }
-    else if (nHeight <= consensusParams.BHDIP001FundZeroLastHeight)
-    {
-        // All to miner
-        reward.miner = nSubsidy + nFees;
-    }
-    else if (nHeight < consensusParams.BHDIP006Height)
-    {
-        // BHDIP004
-        // Y is 95% reward, N is 30% reward.
-        // -------- Old ------------ => ------------ New ------------
-        // Y[95%->miner, 5%->fund]   =>    Y[95%->miner, 5%->fund] pass
-        // Y[95%->miner, 5%->fund]   =>    N[30%->miner, 70%->fund] pass (impossible case)
-        // N[30%->miner, 70%->fund]  =>    N[30%->miner, 70%->fund] pass
-        // N[30%->miner, 70%->fund]  =>    Y[25%->miner[0], 70%->miner[1](fundOld), 5%->fund] (-_-!)
-        //
-        // See https://btchd.org/wiki/developer/BHD004-soft-fork-for-multimining
-        //
-        CAmount miningRequireBalanceAtOldConsensus;
-        CAmount miningRequireBalance = poc::GetMiningRequireBalance(generatorAccountID, nPlotterId, nHeight, view, nullptr, &miningRequireBalanceAtOldConsensus, consensusParams);
+    BlockReward reward = {0, 0, 0, 0, 0, false};
+
+    CAmount enableBalance = 0LL;
+    CAmount miningRequireBalance = 0LL;
+    if (nHeight < consensusParams.BFSIP002Height) {
         CAmount accountBalance = view.GetAccountBalance(generatorAccountID);
-        if (accountBalance >= miningRequireBalance) {
-            // Full mortgage
-            reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
-            if (nHeight < consensusParams.BHDIP004AbandonHeight && accountBalance < miningRequireBalanceAtOldConsensus) {
-                // Old consensus => fund
-                reward.miner0 = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForLowMortgage) / 1000;
-            }
-        } else {
-            // Low mortgage
-            reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForLowMortgage) / 1000;
-            reward.fUnconditional = true;
-        }
-    }
-    else if (nHeight < consensusParams.BHDIP008Height)
-    {
-        // BHDIP006
+
+        enableBalance = accountBalance;
+        miningRequireBalance = poc::GetMiningRequireBalance(generatorAccountID, nPlotterId, nHeight, view, nullptr, nullptr, consensusParams);
+    } else {
         CAmount balancePointSent = 0, balancePointReceived = 0;
         CAmount accountBalance = view.GetAccountBalance(generatorAccountID, nullptr, &balancePointSent, &balancePointReceived);
-        CAmount miningRequireBalance = poc::GetMiningRequireBalance(generatorAccountID, nPlotterId, nHeight, view, nullptr, nullptr, consensusParams);
-        if (accountBalance - balancePointSent + balancePointReceived >= miningRequireBalance) {
-            // Full mortgage
-            reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
-        } else {
-            // Low mortgage
-            reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForLowMortgage) / 1000;
-            reward.fUnconditional = true;
-        }
-    }
-    else
-    {
-        // BHDIP008
-        CAmount balancePointSent = 0, balancePointReceived = 0;
-        CAmount accountBalance = view.GetAccountBalance(generatorAccountID, nullptr, &balancePointSent, &balancePointReceived);
-        CAmount miningRequireBalance = poc::GetMiningRequireBalance(generatorAccountID, nPlotterId, nHeight, view, nullptr, nullptr, consensusParams);
-        if (accountBalance - balancePointSent + balancePointReceived >= miningRequireBalance) {
-            // Full mortgage
-            reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
-            reward.accumulate = GetBlockAccumulateSubsidy(pindexPrev, consensusParams);
-        } else {
-            // Low mortgage
-            int nPeriod = (nHeight - consensusParams.BHDIP008Height) / consensusParams.BHDIP008FundRoyaltyDecreasePeriodForLowMortgage;
-            int fundRatio = consensusParams.BHDIP008FundRoyaltyForLowMortgage - consensusParams.BHDIP008FundRoyaltyDecreaseForLowMortgage * nPeriod;
-            if (fundRatio < consensusParams.BHDIP001FundRoyaltyForFullMortgage)
-                fundRatio = consensusParams.BHDIP001FundRoyaltyForFullMortgage;
-            assert(fundRatio <= consensusParams.BHDIP001FundRoyaltyForLowMortgage);
-            reward.fund = (nSubsidy * fundRatio) / 1000;
-            reward.accumulate -= (nSubsidy * (consensusParams.BHDIP001FundRoyaltyForLowMortgage - fundRatio)) / 1000;
-            reward.fUnconditional = true;
-        }
+
+        enableBalance = accountBalance - balancePointSent + balancePointReceived;
+        miningRequireBalance = poc::GetMiningRequireBalance(generatorAccountID, nPlotterId, nHeight, view, pMinerCapacityTB, nullptr, consensusParams);
     }
 
-    reward.miner = nSubsidy + nFees - reward.fund - reward.miner0;
-    assert(reward.miner + reward.accumulate >= 0);
+    // 50бы to fund per block
+    reward.fund = (nSubsidy * consensusParams.BFSIP001FundRoyaltyForFixed) / 1000;
+
+    // To micro club according to the pledge ratio
+    if (enableBalance < miningRequireBalance) {
+        uint64_t nEarningsRatio = static_cast<uint64_t>(enableBalance / (miningRequireBalance * 1.0) * COIN) * 1000;
+        if (nEarningsRatio <= consensusParams.BFSIP001MinerForLowestReward * COIN) {
+            // pledge ratio <= 100бы
+            reward.fundMicroClub = (nSubsidy - reward.fund) * (1000 - consensusParams.BFSIP001MinerForLowestReward) / 1000;
+        } else {
+            // pledge ratio > 10%
+            CAmount tmpSubsidy = static_cast<CAmount>((nSubsidy - reward.fund) * (nEarningsRatio / (1000.0 * COIN)));
+            reward.fundMicroClub = nSubsidy - reward.fund - tmpSubsidy;
+        }
+
+        reward.fUnconditional = true;
+    }
+
+    #ifdef CUSTOM_GENERATE_COINS
+    if (nHeight >= consensusParams.BFSIP003GenerateStartHeight && nHeight <= consensusParams.BFSIP003GenerateEndHeight) {
+        std::string address = EncodeDestination(ScriptHash(generatorAccountID));
+        if (consensusParams.BFSIP003GenerateAddress.count(address)) {
+            reward.excess = consensusParams.BFSIP003ExcessAmount;
+        }
+    }
+    #endif
+
+    reward.miner = nSubsidy + nFees - reward.fund - reward.fundMicroClub - reward.miner0;
+    assert(reward.miner + reward.excess >= 0);
+
     return reward;
 }
+
 
 BlockReward GetFullMortgageBlockReward(int nHeight, const Consensus::Params& consensusParams)
 {
     const CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
 
-    BlockReward reward = { 0, 0, 0, 0, false };
-    if (nHeight <= consensusParams.BHDIP001PreMiningEndHeight) {
+    BlockReward reward = {0, 0, 0, 0, 0, false};
+    if (nHeight <= consensusParams.BFSIP001PreMiningEndHeight) {
         // Fund pre-mining
         reward.fund = nSubsidy;
-    } else if (nHeight <= consensusParams.BHDIP001FundZeroLastHeight) {
+    } else if (nHeight <= consensusParams.BFSIP001FundZeroLastHeight) {
         // All to miner
         reward.miner = nSubsidy;
-    } else if (nHeight < consensusParams.BHDIP006Height) {
-        reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
-    } else if (nHeight < consensusParams.BHDIP008Height) {
-        reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
     } else {
-        reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForFullMortgage) / 1000;
-        reward.accumulate = GetBlockAccumulateSubsidy(::ChainActive().Tip(), consensusParams);
+        reward.fund = (nSubsidy * consensusParams.BFSIP001FundRoyaltyForFixed) / 1000;
     }
 
-    reward.miner = nSubsidy - reward.fund - reward.miner0;
-    assert(reward.miner + reward.accumulate >= 0);
+    reward.miner = nSubsidy - reward.fund - reward.fundMicroClub - reward.miner0;
+    assert(reward.miner + reward.excess >= 0);
     return reward;
 }
 
@@ -1401,53 +1366,38 @@ BlockReward GetLowMortgageBlockReward(int nHeight, const Consensus::Params& cons
 {
     const CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
 
-    BlockReward reward = { 0, 0, 0, 0, true };
-    if (nHeight <= consensusParams.BHDIP001PreMiningEndHeight) {
+    BlockReward reward = {0, 0, 0, 0, 0, true};
+    if (nHeight <= consensusParams.BFSIP001PreMiningEndHeight) {
         // Fund pre-mining
         reward.fund = nSubsidy;
-    } else if (nHeight <= consensusParams.BHDIP001FundZeroLastHeight) {
+    } else if (nHeight <= consensusParams.BFSIP001FundZeroLastHeight) {
         // All to miner
         reward.miner = nSubsidy;
-    } else if (nHeight < consensusParams.BHDIP006Height) {
-        reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForLowMortgage) / 1000;
-    } else if (nHeight < consensusParams.BHDIP008Height) {
-        reward.fund = (nSubsidy * consensusParams.BHDIP001FundRoyaltyForLowMortgage) / 1000;
     } else {
-        int nPeriod = (nHeight - consensusParams.BHDIP008Height) / consensusParams.BHDIP008FundRoyaltyDecreasePeriodForLowMortgage;
-        int fundRatio = consensusParams.BHDIP008FundRoyaltyForLowMortgage - consensusParams.BHDIP008FundRoyaltyDecreaseForLowMortgage * nPeriod;
-        if (fundRatio < consensusParams.BHDIP001FundRoyaltyForFullMortgage)
-            fundRatio = consensusParams.BHDIP001FundRoyaltyForFullMortgage;
-        assert(fundRatio < consensusParams.BHDIP001FundRoyaltyForLowMortgage);
-        reward.fund = (nSubsidy * fundRatio) / 1000;
-        reward.accumulate -= (nSubsidy * (consensusParams.BHDIP001FundRoyaltyForLowMortgage - fundRatio)) / 1000;
+        reward.fund = (nSubsidy * consensusParams.BFSIP001FundRoyaltyForFixed) / 1000;
+        reward.fundMicroClub = ((nSubsidy - reward.fund) * (1000 - consensusParams.BFSIP001MinerForLowestReward)) / 1000;
     }
 
-    reward.miner = nSubsidy - reward.fund - reward.miner0;
-    assert(reward.miner + reward.accumulate >= 0);
+    reward.miner = nSubsidy - reward.fund - reward.fundMicroClub - reward.miner0;
+    assert(reward.miner + reward.excess >= 0);
     return reward;
 }
 
 int GetFullMortgageFundRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams)
 {
-    if (nHeight <= consensusParams.BHDIP001FundZeroLastHeight) {
+    if (nHeight <= consensusParams.BFSIP001FundZeroLastHeight) {
         return 0;
     } else {
-        return consensusParams.BHDIP001FundRoyaltyForFullMortgage;
+        return consensusParams.BFSIP001FundRoyaltyForFixed;
     }
 }
 
-int GetLowMortgageFundRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams)
+int GetLowMortgageMicroRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams)
 {
-    if (nHeight <= consensusParams.BHDIP001FundZeroLastHeight) {
+    if (nHeight <= consensusParams.BFSIP001FundZeroLastHeight) {
         return 0;
-    } else if (nHeight < consensusParams.BHDIP008Height) {
-        return consensusParams.BHDIP001FundRoyaltyForLowMortgage;
     } else {
-        int nPeriod = (nHeight - consensusParams.BHDIP008Height) / consensusParams.BHDIP008FundRoyaltyDecreasePeriodForLowMortgage;
-        int fundRatio = consensusParams.BHDIP008FundRoyaltyForLowMortgage - consensusParams.BHDIP008FundRoyaltyDecreaseForLowMortgage * nPeriod;
-        if (fundRatio < consensusParams.BHDIP001FundRoyaltyForFullMortgage)
-            fundRatio = consensusParams.BHDIP001FundRoyaltyForFullMortgage;
-        return fundRatio;
+        return (1000 - consensusParams.BFSIP001MinerForLowestReward) * ((float)(1000 - consensusParams.BFSIP001FundRoyaltyForFixed) / 1000);
     }
 }
 
@@ -2006,8 +1956,6 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
 {
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
-    if (pindexPrev != nullptr && pindexPrev->nHeight + 1 >= params.BHDIP004Height && pindexPrev->nHeight + 1 < params.BHDIP006Height)
-        nVersion |= VERSIONBITS_BHDV2_BITS;
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, static_cast<Consensus::DeploymentPos>(i), versionbitscache);
@@ -2298,7 +2246,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     // Check bind
-    if (pindex->nHeight >= chainparams.GetConsensus().BHDIP006BindPlotterActiveHeight &&
+    if (pindex->nHeight >= chainparams.GetConsensus().BFSIP002BindPlotterActiveHeight &&
         (fCheckWork || pindex->nHeight > chainparams.GetLastCheckpointHeight()) && /* If force check or after checkpoint then enable bind verify */
         !view.HaveActiveBindPlotter(pindex->generatorAccountID, pindex->nPlotterId)) {
         std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[0].scriptPubKey));
@@ -2307,148 +2255,231 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                         REJECT_INVALID, "bad-cb-bindplotter");
     }
 
-    // GetBlockReward() must use pre CCoinsView
-    BlockReward blockReward = GetBlockReward(pindex->pprev, nFees, pindex->generatorAccountID, pindex->nPlotterId, view, chainparams.GetConsensus());
-    // Check coinbase amount
-    if (block.vtx[0]->GetValueOut() > blockReward.miner + blockReward.miner0 + blockReward.fund + blockReward.accumulate)
-        return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                        error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                            block.vtx[0]->GetValueOut(), blockReward.miner + blockReward.miner0 + blockReward.fund + blockReward.accumulate),
-                        REJECT_INVALID, "bad-cb-amount");
+    if (!::ChainstateActive().IsInitialBlockDownload()) {
+        // GetBlockReward() must use pre CCoinsView
+        BlockReward blockReward = GetBlockReward(pindex->pprev, nullptr, nFees, pindex->generatorAccountID, pindex->nPlotterId, view, chainparams.GetConsensus());
+        // Check coinbase amount
+        if (block.vtx[0]->GetValueOut() > blockReward.miner + blockReward.miner0 + blockReward.fund + blockReward.fundMicroClub + blockReward.excess)
+            return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
+                    block.vtx[0]->GetValueOut(), blockReward.miner + blockReward.miner0 + blockReward.fund + blockReward.fundMicroClub + blockReward.excess),
+                REJECT_INVALID, "bad-cb-amount");
 
-    if (pindex->nHeight >= chainparams.GetConsensus().BHDIP006Height) {
-        // Standard transaction: vout[0] for miner+accumulate, vout[1] for fund (maybe not exist), vout[2] for witness nulldata (allow not exist)
-        if (blockReward.miner0 != 0)
-            return state.Invalid(ValidationInvalidReason::CONSENSUS, error("ConnectBlock(): coinbase not standard"), REJECT_INVALID, "bad-cb-amount");
+        if (pindex->nHeight >= chainparams.GetConsensus().BFSIP002Height) {
+            // Standard transaction: vout[0] for miner+accumulate, vout[1] for fund (maybe not exist), vout[2] for witness nulldata (allow not exist)
+            if (blockReward.miner0 != 0)
+                return state.Invalid(ValidationInvalidReason::CONSENSUS, error("ConnectBlock(): coinbase not standard"), REJECT_INVALID, "bad-cb-amount");
 
-        if (blockReward.fund != 0) {
-            // Check output size
-            if (block.vtx[0]->vout.size() < 2)
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase not pay to fund (limit=%d)", blockReward.fund),
-                                REJECT_INVALID, "bad-cb-amount");
-
-            // Check output address
-            std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[1].scriptPubKey));
-            if (!chainparams.GetConsensus().BHDFundAddressPool.count(address))
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", blockReward.fund),
-                                REJECT_INVALID, "bad-cb-amount");
-
-            // Check output amount
-            if (block.vtx[0]->vout[1].nValue < blockReward.fund)
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.fund),
-                                REJECT_INVALID, "bad-cb-amount");
-
-            // Force check other outputs
-            if (block.vtx[0]->vout.size() > 3 || (block.vtx[0]->vout.size() == 3 && block.vtx[0]->vout[2].nValue != 0))
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase cannot pays to multi outputs"),
-                                REJECT_INVALID, "bad-cb-multiouts");
-        } else {
-            // Force check other outputs
-            if (block.vtx[0]->vout.size() > 2 || (block.vtx[0]->vout.size() == 2 && block.vtx[0]->vout[1].nValue != 0))
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase cannot pays to multi outputs"),
-                                REJECT_INVALID, "bad-cb-multiouts");
-        }
-    } else {
-        // Old standard transaction
-        unsigned int fundIndex = std::numeric_limits<unsigned int>::max();
-        if (pindex->nVersion & VERSIONBITS_BHDV2_BITS) {
-            // New block: 0x20000004
-            // Check real fund
             if (blockReward.fund != 0) {
-                // Require pay to fund
-                fundIndex = (blockReward.miner0 != 0) ? 2 : 1;
-                // Check output size
-                if (fundIndex >= block.vtx[0]->vout.size())
-                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase not pays to fund (limit=%d)", blockReward.fund),
-                                    REJECT_INVALID, "bad-cb-amount");
-
-                // Check output address
-                std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[fundIndex].scriptPubKey));
-                if (!chainparams.GetConsensus().BHDFundAddressPool.count(address))
-                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", blockReward.miner0),
-                                    REJECT_INVALID, "bad-cb-amount");
-
-                // Check output amount
-                if (block.vtx[0]->vout[fundIndex].nValue < blockReward.fund)
-                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[fundIndex].nValue, blockReward.fund),
-                                    REJECT_INVALID, "bad-cb-amount");
-            }
-
-            // Check output amount for miner[1], let old wallet can verify
-            if (blockReward.miner0 != 0) {
                 // Check output size
                 if (block.vtx[0]->vout.size() < 2)
                     return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase not pay to miner[1] (limit=%d)", blockReward.fund),
-                                    REJECT_INVALID, "bad-cb-amount");
-
-                // Check output amount
-                if (block.vtx[0]->vout[1].nValue < blockReward.miner0)
-                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase pays too less to miner[1] (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.miner0),
-                                    REJECT_INVALID, "bad-cb-amount");
-            }
-        } else {
-            // Old block: 0x20000000
-            if (pindex->nHeight >= chainparams.GetConsensus().BHDIP004AbandonHeight)
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): Depreacted block version %08x", pindex->nVersion),
-                                REJECT_INVALID, "bad-block-version");
-
-            CAmount fund = (blockReward.miner0 != 0 ? blockReward.miner0 : blockReward.fund);
-            if (fund != 0) {
-                // Require pay to fund
-                // For BHDIP004: [0] => miner, [1] => fund, [2] => miner-append
-                // Check output size
-                if (block.vtx[0]->vout.size() < 2)
-                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase not pay to fund (limit=%d)", fund),
-                                    REJECT_INVALID, "bad-cb-amount");
+                        error("ConnectBlock(): coinbase not pay to fund (limit=%d)", blockReward.fund),
+                        REJECT_INVALID, "bad-cb-amount");
 
                 // Check output address
                 std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[1].scriptPubKey));
-                if (!chainparams.GetConsensus().BHDFundAddressPool.count(address))
+                if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
                     return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                    error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", fund),
-                                    REJECT_INVALID, "bad-cb-amount");
+                        error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", blockReward.fund),
+                        REJECT_INVALID, "bad-cb-amount");
 
                 // Check output amount
-                if (block.vtx[0]->vout[1].nValue < fund) {
-                    if (pindex->nHeight >= chainparams.GetConsensus().BHDIP004Height) {
-                        // Bug, accept corruption pay for fund. See https://btchd.org/wiki/BHDIP/004#bad-blocks
-                        LogPrint(BCLog::POC, "ConnectBlock(): Block hash=%s height=%d bad pay for fund, but accepted!\n", pindex->GetBlockHash().ToString(), pindex->nHeight);
-                    } else {
+                if (block.vtx[0]->vout[1].nValue < blockReward.fund)
+                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                        error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.fund),
+                        REJECT_INVALID, "bad-cb-amount");
+
+                if (blockReward.fundMicroClub != 0) {
+                    // Check output size
+                    if (block.vtx[0]->vout.size() < 3)
                         return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                        error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, fund),
-                                        REJECT_INVALID, "bad-cb-amount");
-                    }
+                            error("ConnectBlock(): coinbase not pay to microclub (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output address
+                    std::string address1 = EncodeDestination(ExtractDestination(block.vtx[0]->vout[2].scriptPubKey));
+                    if (!chainparams.GetConsensus().BFSFundAddressPool.count(address1))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to microclub account (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[2].nValue < blockReward.fundMicroClub)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to microclub (actual=%d vs limit=%d)", block.vtx[0]->vout[2].nValue, blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Force check other outputs
+                    if (block.vtx[0]->vout.size() > 4 || (block.vtx[0]->vout.size() == 4 && block.vtx[0]->vout[3].nValue != 0))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase cannot pays to multi outputs"),
+                            REJECT_INVALID, "bad-cb-multiouts");
+                } else if (block.vtx[0]->vout.size() > 3 || (block.vtx[0]->vout.size() == 3 && block.vtx[0]->vout[2].nValue != 0))
+                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                        error("ConnectBlock(): coinbase cannot pays to multi outputs"),
+                        REJECT_INVALID, "bad-cb-multiouts");
+            } else {
+                if (blockReward.fundMicroClub != 0) {
+                    // Check output size
+                    if (block.vtx[0]->vout.size() < 2)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pay to microclub (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output address
+                    std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[1].scriptPubKey));
+                    if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to microclub account (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[1].nValue < blockReward.fundMicroClub)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to microclub (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Force check other outputs
+                    if (block.vtx[0]->vout.size() > 3 || (block.vtx[0]->vout.size() == 3 && block.vtx[0]->vout[2].nValue != 0))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase cannot pays to multi outputs"),
+                            REJECT_INVALID, "bad-cb-multiouts");
+                } else if (block.vtx[0]->vout.size() > 2 || (block.vtx[0]->vout.size() == 2 && block.vtx[0]->vout[1].nValue != 0))
+                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                        error("ConnectBlock(): coinbase cannot pays to multi outputs"),
+                        REJECT_INVALID, "bad-cb-multiouts");
+            }
+        } else {
+            // Old standard transaction
+            unsigned int fundIndex = std::numeric_limits<unsigned int>::max();
+            if (pindex->nVersion & VERSIONBITS_BFSV2_BITS) {
+                // New block: 0x20000004
+                // Check real fund
+                if (blockReward.fund != 0) {
+                    // Require pay to fund
+                    fundIndex = (blockReward.miner0 != 0) ? 2 : 1;
+                    // Check output size
+                    if (fundIndex >= block.vtx[0]->vout.size())
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to fund (limit=%d)", blockReward.fund),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output address
+                    std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[fundIndex].scriptPubKey));
+                    if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", blockReward.miner0),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[fundIndex].nValue < blockReward.fund)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[fundIndex].nValue, blockReward.fund),
+                            REJECT_INVALID, "bad-cb-amount");
                 }
 
-                fundIndex = 1;
+                // Check output amount for miner[1], let old wallet can verify
+                if (blockReward.miner0 != 0) {
+                    // Check output size
+                    if (block.vtx[0]->vout.size() < 2)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pay to miner[1] (limit=%d)", blockReward.fund),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[1].nValue < blockReward.miner0)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to miner[1] (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.miner0),
+                            REJECT_INVALID, "bad-cb-amount");
+                }
+            } else {
+                // Old block: 0x20000000
+                //if (pindex->nHeight >= chainparams.GetConsensus().BFSIP004AbandonHeight)
+                //    return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                //        error("ConnectBlock(): Depreacted block version %08x", pindex->nVersion),
+                //        REJECT_INVALID, "bad-block-version");
+
+                CAmount fund = (blockReward.miner0 != 0 ? blockReward.miner0 : blockReward.fund);
+                if (fund != 0) {
+                    // Check output size
+                    if (block.vtx[0]->vout.size() < 2)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pay to fund (limit=%d)", fund),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output address
+                    std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[1].scriptPubKey));
+                    if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to fund account (limit=%d)", fund),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[1].nValue < fund) {
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to fund (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, fund),
+                            REJECT_INVALID, "bad-cb-amount");
+                    }
+
+                    fundIndex = 1;
+
+                    if (blockReward.fundMicroClub != 0) {
+                        // Check output size
+                        if (block.vtx[0]->vout.size() < 3)
+                            return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                                error("ConnectBlock(): coinbase not pay to microclub (limit=%d)", blockReward.fundMicroClub),
+                                REJECT_INVALID, "bad-cb-amount");
+
+                        // Check output address
+                        std::string address1 = EncodeDestination(ExtractDestination(block.vtx[0]->vout[2].scriptPubKey));
+                        if (!chainparams.GetConsensus().BFSFundAddressPool.count(address1))
+                            return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                                error("ConnectBlock(): coinbase not pays to microclub account (limit=%d)", blockReward.fundMicroClub),
+                                REJECT_INVALID, "bad-cb-amount");
+
+                        // Check output amount
+                        if (block.vtx[0]->vout[2].nValue < blockReward.fundMicroClub)
+                            return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                                error("ConnectBlock(): coinbase pays too less to microclub (actual=%d vs limit=%d)", block.vtx[0]->vout[2].nValue, blockReward.fundMicroClub),
+                                REJECT_INVALID, "bad-cb-amount");
+                    }
+                } else if (blockReward.fundMicroClub != 0) {
+                    // Check output size
+                    if (block.vtx[0]->vout.size() < 2)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pay to microclub (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output address
+                    std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[1].scriptPubKey));
+                    if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase not pays to microclub account (limit=%d)", blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+
+                    // Check output amount
+                    if (block.vtx[0]->vout[1].nValue < blockReward.fundMicroClub)
+                        return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                            error("ConnectBlock(): coinbase pays too less to microclub (actual=%d vs limit=%d)", block.vtx[0]->vout[1].nValue, blockReward.fundMicroClub),
+                            REJECT_INVALID, "bad-cb-amount");
+                }
             }
-        }
 
-        // Check multi output
-        // All output for miner must be unique miner account, otherwise can steal point of other miner
-        // If has other output, must output to fund
-        for (unsigned int i = 1; i < block.vtx[0]->vout.size(); i++) {
-            if (i == fundIndex || block.vtx[0]->vout[i].nValue == 0 || block.vtx[0]->vout[i].scriptPubKey == block.vtx[0]->vout[0].scriptPubKey)
-                continue;
+            // Check multi output
+            // All output for miner must be unique miner account, otherwise can steal point of other miner
+            // If has other output, must output to fund
+            for (unsigned int i = 1; i < block.vtx[0]->vout.size(); i++) {
+                if (i == fundIndex || block.vtx[0]->vout[i].nValue == 0 || block.vtx[0]->vout[i].scriptPubKey == block.vtx[0]->vout[0].scriptPubKey)
+                    continue;
 
-            // Testnet 8501 vout[1] to fund
-            std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[i].scriptPubKey));
-            if (!chainparams.GetConsensus().BHDFundAddressPool.count(address))
-                return state.Invalid(ValidationInvalidReason::CONSENSUS,
-                                error("ConnectBlock(): coinbase cannot pays to multi outputs"),
-                                REJECT_INVALID, "bad-cb-multiouts");
+                // Testnet 8501 vout[1] to fund
+                std::string address = EncodeDestination(ExtractDestination(block.vtx[0]->vout[i].scriptPubKey));
+                if (!chainparams.GetConsensus().BFSFundAddressPool.count(address))
+                    return state.Invalid(ValidationInvalidReason::CONSENSUS,
+                        error("ConnectBlock(): coinbase cannot pays to multi outputs"),
+                        REJECT_INVALID, "bad-cb-multiouts");
+            }
         }
     }
 
@@ -2469,16 +2500,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     // Set unconditional flags
-    if (pindex->nHeight >= chainparams.GetConsensus().BHDIP008Height && blockReward.fUnconditional) {
-        if (!(pindex->nStatus & BLOCK_UNCONDITIONAL)) {
-            pindex->nStatus |= BLOCK_UNCONDITIONAL;
-            setDirtyBlockIndex.insert(pindex);
-        }
-    } else {
-        if (pindex->nStatus & BLOCK_UNCONDITIONAL) {
-            pindex->nStatus &= ~BLOCK_UNCONDITIONAL;
-            setDirtyBlockIndex.insert(pindex);
-        }
+    if (pindex->nStatus & BLOCK_UNCONDITIONAL) {
+        pindex->nStatus &= ~BLOCK_UNCONDITIONAL;
+        setDirtyBlockIndex.insert(pindex);
     }
 
     assert(pindex->phashBlock);
@@ -3639,7 +3663,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
         return state.Invalid(ValidationInvalidReason::BLOCK_INVALID_HEADER, false, REJECT_INVALID, "bad-diff", "incorrect difficulty");
 
     // Block signature
-    if (pindexPrev->nHeight + 1 >= chainparams.GetConsensus().BHDIP007Height) {
+    if (pindexPrev->nHeight + 1 >= chainparams.GetConsensus().BFSIP002LimitBindPlotterHeight) {
         if (block.vchPubKey.size() != CPubKey::COMPRESSED_PUBLIC_KEY_SIZE || block.vchSignature.size() > CPubKey::SIGNATURE_SIZE)
             return state.Invalid(ValidationInvalidReason::BLOCK_INVALID_HEADER, false, REJECT_INVALID, "bad-blk-sign", "require block signature");
 

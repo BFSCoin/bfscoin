@@ -62,8 +62,8 @@
         <translation>收款地址</translation>
     </message>
     <message>
-        <source>These are your BitcoinHD addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>這些是你要付款過去的比特硬幣位址。在付款之前，務必要檢查金額和收款位址是否正確。</translation>
+        <source>These are your BFScoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>這些是你要付款過去的比特文件位址。在付款之前，務必要檢查金額和收款位址是否正確。</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -160,8 +160,8 @@
         <translation>確認錢包加密</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BHDs&lt;/b&gt;!</source>
-        <translation>警告: 如果你將錢包加密後又忘記密碼，你就會&lt;b&gt;失去所有 BitcoinHD 了&lt;/b&gt;！</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BFSs&lt;/b&gt;!</source>
+        <translation>警告: 如果你將錢包加密後又忘記密碼，你就會&lt;b&gt;失去所有 BFScoin 了&lt;/b&gt;！</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -298,8 +298,8 @@
         <translation>正在為磁碟區塊重建索引...</translation>
     </message>
     <message>
-        <source>Send coins to a BitcoinHD address</source>
-        <translation>付款至一個比特硬幣位址</translation>
+        <source>Send coins to a BFScoin address</source>
+        <translation>付款至一個比特文件位址</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -342,16 +342,16 @@
         <translation>檔案 &amp;F</translation>
     </message>
     <message>
-        <source>&amp;Settings</source>
-        <translation>設定 &amp;S</translation>
+        <source>&amp;Tools</source>
+        <translation>工具 &amp;T</translation>
     </message>
     <message>
         <source>&amp;Help</source>
         <translation>說明 &amp;H</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and btchd: URIs)</source>
-        <translation>要求付款 (產生QR碼 btchd: URIs)</translation>
+        <source>Request payments (generates QR codes and bfscoin: URIs)</source>
+        <translation>要求付款 (產生QR碼 bfscoin: URIs)</translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -405,8 +405,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>BitcoinHD</source>
-        <translation>BitcoinHD</translation>
+        <source>BFScoin</source>
+        <translation>BFScoin</translation>
     </message>
     <message>
         <source>Error</source>
@@ -449,8 +449,8 @@
 <context>
     <name>QObject</name>
     <message>
-        <source>Enter a BitcoinHD address (e.g. %1)</source>
-        <translation>輸入一個比特硬幣位址 (例如 %1)</translation>
+        <source>Enter a BFScoin address (e.g. %1)</source>
+        <translation>輸入一個比特文件位址 (例如 %1)</translation>
     </message>
     <message>
         <source>%1 d</source>

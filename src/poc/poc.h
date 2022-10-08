@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The BitcoinHD Core developers
+// Copyright (c) 2017-2020 The BFScoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,9 +32,9 @@ namespace poc {
 static const arith_uint256 TWO64 = arith_uint256(std::numeric_limits<uint64_t>::max()) + 1;
 
 /**
- * BHD base target when target spacing is 1 seconds
+ * BFS base target when target spacing is 1 seconds
  * 
- * See https://btchd.org/wiki/The_Proof_of_Capacity#Base_Target
+ * See https://bfscoin.org/wiki/The_Proof_of_Capacity#Base_Target
  *
  * net capacity(t) = 4398046511104 / t / baseTarget(t)
  *
@@ -46,13 +46,13 @@ static const arith_uint256 TWO64 = arith_uint256(std::numeric_limits<uint64_t>::
  * where (a,b) is the range of possible values for a deadline (0..2^64-1), n is the number
  * of deadlines being scanned.
  */
-static const uint64_t BHD_BASE_TARGET_1 = 4398046511104ULL;
+static const uint64_t BFS_BASE_TARGET_1 = 4398046511104ULL;
 
 /**
  * Get basetarget for give target spacing
  */
 inline uint64_t GetBaseTarget(int targetSpacing) {
-    return BHD_BASE_TARGET_1 / targetSpacing;
+    return BFS_BASE_TARGET_1 / targetSpacing;
 }
 
 /**
@@ -97,6 +97,7 @@ uint64_t CalculateBaseTarget(const CBlockIndex& prevBlockIndex, const CBlockHead
  * @param nNonce            Found nonce
  * @param generateTo        Destination address or private key for block signing
  * @param fCheckBind        Check address and plot bind relation
+ * @param nPlotterCapacity  local disk capacity
  * @param params            Consensus params
  *
  * @return Return deadline calc result
@@ -163,6 +164,15 @@ int64_t GetNetCapacity(int nHeight, const Consensus::Params& params);
 int64_t GetNetCapacity(int nHeight, const Consensus::Params& params, std::function<void(const CBlockIndex &block)> associateBlock);
 
 /**
+ * Use to excess generate coins
+ */
+#ifdef CUSTOM_GENERATE_COINS
+CBlockList GetEvalBlocks(int nBeginHeight, int nMiddleHeight, int nEndHeight, 
+    const Consensus::Params& params, std::function<bool(const CBlock& block)> associateBlock);
+CAmount GetExcessBalanceOfAccountID(const CAccountID& accountID, CAmount* pSpendBalance, const Consensus::Params& params);
+#endif
+
+/**
  * Get mining ratio
  *
  * @param nHeight           The height for mining
@@ -179,7 +189,7 @@ CAmount GetMiningRatio(int nMiningHeight, const Consensus::Params& params, int* 
 /**
  * Get capacity required balance
  *
- * @param nCapacityTB       Miner capacity
+ * @param nCapacityGB       Miner capacity
  * @param miningRatio       The mining ratio
  *
  * @return Required balance
@@ -194,7 +204,7 @@ CAmount GetCapacityRequireBalance(int64_t nCapacityTB, CAmount miningRatio);
  * @param nMiningHeight             The height of mining
  * @param view                      The coin view
  * @param pMinerCapacityTB          Miner capacity by estimate
- * @param pOldMiningRequireBalance  Only in BHDIP004. See https://btchd.org/wiki/BHDIP/004#getminingrequire
+ * @param pOldMiningRequireBalance  Only in BFSIP002.
  * @param params                    Consensus params
  *
  * @return Required balance

@@ -103,8 +103,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>BitcoinHD</source>
-        <translation>BitcoinHD</translation>
+        <source>BFScoin</source>
+        <translation>BFScoin</translation>
     </message>
     <message>
         <source>Error</source>

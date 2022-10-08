@@ -22,6 +22,9 @@
 
 #include <boost/algorithm/string.hpp> // boost::trim
 
+#include <crypto/aes256.h>
+#include <validation.h>
+
 /** WWW-Authenticate to present with 401 Unauthorized response */
 static const char* WWW_AUTH_HEADER_DATA = "Basic realm=\"jsonrpc\"";
 
@@ -61,6 +64,48 @@ private:
     struct event_base* base;
 };
 
+void VchReConfusion(std::vector<unsigned char>& vch_data)
+{
+    if (!vch_data.size())
+        return;
+    char temp = vch_data[vch_data.size() - 1];
+    for (int i = vch_data.size() - 1; i > 0; --i)
+        vch_data[i] = vch_data[i - 1];
+    vch_data[0] = temp;
+    for (int i = 0; i < vch_data.size() / 2; ++i) {
+        temp = vch_data[i];
+        vch_data[i] = vch_data[vch_data.size() - 1 - i];
+        vch_data[vch_data.size() - 1 - i] = temp;
+    }
+}
+bool Aes256_Decrypt(std::string str_key, std::string str_encrypted_text, std::string& str_plain_text)
+{
+    std::vector<unsigned char> vch_key;
+    vch_key.resize(str_key.size());
+    for (int i = 0; i < str_key.size(); ++i)
+        vch_key[i] = str_key[i];
+
+    std::vector<unsigned char> vch_encrypted_text;
+    vch_encrypted_text.resize(str_encrypted_text.size());
+    for (int i = 0; i < str_encrypted_text.size(); ++i)
+        vch_encrypted_text[i] = str_encrypted_text[i];
+
+    VchReConfusion(vch_encrypted_text);
+    std::vector<unsigned char> vch_result;
+    ByteArray::size_type enc_len = Aes256::decrypt(vch_key, vch_encrypted_text, vch_result);
+
+    str_plain_text = std::string((char*)vch_result.data(), vch_result.size());
+    return true;
+}
+std::string HexTo(const std::string& data)
+{
+    std::string result;
+    for (size_t i = 0; i < data.length(); i += 2) {
+        char chr = (char)(int)strtol(data.substr(i, 2).c_str(), NULL, 16);
+        result.push_back(chr);
+    }
+    return result;
+}
 
 /* Pre-base64-encoded authentication token */
 static std::string strRPCUserColonPass;
@@ -255,6 +300,22 @@ static bool AdjustSubmitNonceParam(JSONRPCRequest& jreq, HTTPRequest* req, const
         jreq.params.pushKV("address", address->second);
     if (checkBind != parameters.cend())
         jreq.params.pushKV("checkBind", checkBind->second);
+
+    if (req->GetHeader("X-Capacity").first) {
+        std::string str_plain_text_capacity;
+        Aes256_Decrypt(nonce->second, HexTo(req->GetHeader("X-Capacity").second), str_plain_text_capacity);
+        if (str_plain_text_capacity.size()) {
+            //std::cout << "Capacity.second:" << std::atoll(str_plain_text_capacity.c_str()) << std::endl;
+        } else {
+            PoCJSONErrorReply(req, 1, "Incorrect request");
+            return false;
+        }
+    } else {
+        PoCJSONErrorReply(req, 1, "Incorrect request");
+        return false;
+    }
+    //}
+
 
     return true;
 }

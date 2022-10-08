@@ -13,7 +13,7 @@
 - (NSString *)__bundleIdentifier
 {
     if (self == [NSBundle mainBundle]) {
-        return @"org.btchd.BTCHD-Qt";
+        return @"org.bfscoin.BFSCOIN-Qt";
     } else {
         return [self __bundleIdentifier];
     }

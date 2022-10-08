@@ -903,7 +903,6 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
                 // parse uniform coin
                 payload = ExtractTransactionDatacarrier(*ptx, ::ChainActive().Height() + 1, DatacarrierTypes{DATACARRIER_TYPE_BINDPLOTTER, DATACARRIER_TYPE_POINT});
                 if (!payload) {
-                    // BHDIP007 always active
                     return false;
                 }
             }

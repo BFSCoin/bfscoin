@@ -266,16 +266,17 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams) E
 /** Get block reward */
 typedef struct {
     CAmount miner;
-    CAmount miner0; //! For BHDIP004
+    CAmount miner0;
     CAmount fund;
-    CAmount accumulate;
+    CAmount fundMicroClub;
+    CAmount excess;
     bool fUnconditional;
 } BlockReward;
-BlockReward GetBlockReward(const CBlockIndex* pindexPrev, const CAmount& nFees, const CAccountID& generatorAccountID, const uint64_t& nPlotterId, const CCoinsViewCache& view, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+BlockReward GetBlockReward(const CBlockIndex* pindexPrev, int64_t* pMinerCapacityTB, const CAmount& nFees, const CAccountID& generatorAccountID, const uint64_t& nPlotterId, const CCoinsViewCache& view, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 BlockReward GetFullMortgageBlockReward(int nHeight, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 BlockReward GetLowMortgageBlockReward(int nHeight, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 int GetFullMortgageFundRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-int GetLowMortgageFundRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+int GetLowMortgageMicroRoyaltyRatio(int nHeight, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
 double GuessVerificationProgress(const ChainTxData& data, const CBlockIndex* pindex);

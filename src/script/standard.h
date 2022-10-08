@@ -213,7 +213,7 @@ CAccountID ExtractAccountID(const CPubKey& pubkey);
 CAccountID ExtractAccountID(const CScript& scriptPubKey);
 CAccountID ExtractAccountID(const CTxDestination& dest);
 
-/** opreturn type. See https://btchd.org/wiki/datacarrier */
+/** opreturn type. See https://bfscoin.org/wiki/datacarrier */
 enum DatacarrierType : unsigned int {
     // Range
     DATACARRIER_TYPE_MIN = 0x0000000f,
@@ -223,13 +223,13 @@ enum DatacarrierType : unsigned int {
     DATACARRIER_TYPE_UNKNOWN = DATACARRIER_TYPE_MIN,
 
     // Type of consensus relevant
-    //! See https://btchd.org/wiki/datacarrier/bind-plotter
+    //! See https://bfscoin.org/wiki/datacarrier/bind-plotter
     DATACARRIER_TYPE_BINDPLOTTER = 0x00000010,
-    //! See https://btchd.org/wiki/datacarrier/point
+    //! See https://bfscoin.org/wiki/datacarrier/point
     DATACARRIER_TYPE_POINT       = 0x00000011,
-    //! See https://btchd.org/wiki/datacarrier/contract
+    //! See https://bfscoin.org/wiki/datacarrier/contract
     DATACARRIER_TYPE_CONTRACT    = 0x00000012,
-    //! See https://btchd.org/wiki/datacarrier/text
+    //! See https://bfscoin.org/wiki/datacarrier/text
     DATACARRIER_TYPE_TEXT        = 0x00000013,
 };
 typedef std::set<DatacarrierType> DatacarrierTypes;
@@ -307,11 +307,14 @@ static const CAmount PROTOCOL_BINDPLOTTER_LOCKAMOUNT = COIN / 10;
 /** The bind plotter transaction fee */
 static const CAmount PROTOCOL_BINDPLOTTER_MINFEE = COIN / 10;
 
+/** The bind plotter transaction confirm target */
+static const int PROTOCOL_BINDPLOTTER_CONFIRMTARGET = 1;
+
 /** The height for bind plotter default maximum relative tip height */
 static const int PROTOCOL_BINDPLOTTER_DEFAULTMAXALIVE = 24;
 
 /** The height for bind plotter maximum relative tip height */
-static const int PROTOCOL_BINDPLOTTER_MAXALIVE = 288 * 7;
+static const int PROTOCOL_BINDPLOTTER_MAXALIVE = 480 * 7;
 
 /** The bind plotter script size */
 static const int PROTOCOL_BINDPLOTTER_SCRIPTSIZE = 109;

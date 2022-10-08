@@ -68,6 +68,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             isminetype senderIsmine = wtx.txout_is_mine[0];
             isminetype receiverIsmine = wtx.tx_point_address_is_mine;
             TransactionRecord sub(hash, nTime);
+            sub.m_confirm_target = wtx.tx->m_confirm_target;
             if ((senderIsmine & ISMINE_SPENDABLE) && (receiverIsmine & ISMINE_SPENDABLE)) {
                 // Mine -> Mine
                 sub.debit = -wtx.tx->vout[0].nValue + nNet;
@@ -146,6 +147,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.idx = i; // vout index
                 sub.credit = txout.nValue;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
+				sub.m_confirm_target = wtx.tx->m_confirm_target;
+				
                 if (wtx.txout_address_is_mine[i])
                 {
                     // Received by Bitcoin Address
@@ -207,6 +210,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 TransactionRecord sub(hash, nTime);
                 sub.idx = nOut;
                 sub.involvesWatchAddress = involvesWatchAddress;
+                sub.m_confirm_target = wtx.tx->m_confirm_target;
 
                 if(wtx.txout_is_mine[nOut])
                 {
@@ -312,7 +316,7 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
             if (wtx.is_abandoned)
                 status.status = TransactionStatus::Abandoned;
         }
-        else if (status.depth < RecommendedNumConfirmations)
+        else if (status.depth < wtx.m_confirm_target)
         {
             status.status = TransactionStatus::Confirming;
         }

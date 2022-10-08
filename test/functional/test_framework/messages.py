@@ -533,7 +533,7 @@ class CBlockHeader:
             self.hashPrevBlock = header.hashPrevBlock
             self.hashMerkleRoot = header.hashMerkleRoot
             self.nTime = header.nTime
-            self.nBits = header.nBits
+            self.nPlotterId = header.nPlotterId
             self.nNonce = header.nNonce
             self.sha256 = header.sha256
             self.hash = header.hash
@@ -544,7 +544,7 @@ class CBlockHeader:
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.nTime = 0
-        self.nBits = 0
+        self.nPlotterId = 0
         self.nNonce = 0
         self.sha256 = None
         self.hash = None
@@ -554,7 +554,7 @@ class CBlockHeader:
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
-        self.nBits = struct.unpack("<I", f.read(4))[0]
+        self.nPlotterId = struct.unpack("<I", f.read(4))[0]
         self.nNonce = struct.unpack("<I", f.read(4))[0]
         self.sha256 = None
         self.hash = None
@@ -565,7 +565,7 @@ class CBlockHeader:
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
         r += struct.pack("<I", self.nTime)
-        r += struct.pack("<I", self.nBits)
+        r += struct.pack("<I", self.nPlotterId)
         r += struct.pack("<I", self.nNonce)
         return r
 
@@ -576,7 +576,7 @@ class CBlockHeader:
             r += ser_uint256(self.hashPrevBlock)
             r += ser_uint256(self.hashMerkleRoot)
             r += struct.pack("<I", self.nTime)
-            r += struct.pack("<I", self.nBits)
+            r += struct.pack("<I", self.nPlotterId)
             r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
             self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
@@ -589,7 +589,7 @@ class CBlockHeader:
     def __repr__(self):
         return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x)" \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
-               time.ctime(self.nTime), self.nBits, self.nNonce)
+               time.ctime(self.nTime), self.nPlotterId, self.nNonce)
 
 BLOCK_HEADER_SIZE = len(CBlockHeader().serialize())
 assert_equal(BLOCK_HEADER_SIZE, 80)
@@ -645,7 +645,7 @@ class CBlock(CBlockHeader):
 
     def is_valid(self):
         self.calc_sha256()
-        target = uint256_from_compact(self.nBits)
+        target = uint256_from_compact(self.nPlotterId)
         if self.sha256 > target:
             return False
         for tx in self.vtx:
@@ -657,7 +657,7 @@ class CBlock(CBlockHeader):
 
     def solve(self):
         self.rehash()
-        target = uint256_from_compact(self.nBits)
+        target = uint256_from_compact(self.nPlotterId)
         while self.sha256 > target:
             self.nNonce += 1
             self.rehash()
@@ -665,7 +665,7 @@ class CBlock(CBlockHeader):
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
-               time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
+               time.ctime(self.nTime), self.nPlotterId, self.nNonce, repr(self.vtx))
 
 
 class PrefilledTransaction:

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The BitcoinHD Core developers
+// Copyright (c) 2017-2020 The BFScoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -88,8 +88,8 @@ Result CreateBindPlotterTransaction(CWallet* wallet, const CTxDestination &dest,
 
     const Consensus::Params& params = Params().GetConsensus();
     int nSpendHeight = locked_chain->getHeight().get_value_or(0) + 1;
-    if (nSpendHeight < params.BHDIP006Height) { // Check active status
-        errors.push_back(strprintf("The bind plotter inactive (Will active on %d)", params.BHDIP006Height));
+    if (nSpendHeight < params.BFSIP002Height) { // Check active status
+        errors.push_back(strprintf("The bind plotter inactive (Will active on %d)", params.BFSIP002Height));
         return Result::INVALID_REQUEST;
     }
 
@@ -105,14 +105,14 @@ Result CreateBindPlotterTransaction(CWallet* wallet, const CTxDestination &dest,
     realCoinControl.m_coin_pick_policy = CoinPickPolicy::IncludeIfSet;
     realCoinControl.m_pick_dest = dest;
     realCoinControl.destChange = dest;
-    if (nSpendHeight >= params.BHDIP006CheckRelayHeight) { // Limit bind plotter minimal fee
+    if (nSpendHeight >= params.BFSIP002CheckRelayHeight) { // Limit bind plotter minimal fee
         realCoinControl.m_min_txfee = PROTOCOL_BINDPLOTTER_MINFEE;
     }
     // Calculate bind transaction fee
     if (CAmount punishmentReward = wallet->chain().getBindPlotterPunishment(nSpendHeight, plotterId).first) { // Calculate bind transaction fee
         realCoinControl.m_min_txfee = std::max(realCoinControl.m_min_txfee, punishmentReward + PROTOCOL_BINDPLOTTER_MINFEE);
         if (!fAllowHighFee) {
-            errors.push_back(strprintf("This binding operation triggers a pledge anti-cheating mechanism and therefore requires a large bind plotter fee %s BHD", FormatMoney(realCoinControl.m_min_txfee)));
+            errors.push_back(strprintf("This binding operation triggers a pledge anti-cheating mechanism and therefore requires a large bind plotter fee %s BFS", FormatMoney(realCoinControl.m_min_txfee)));
             return Result::BIND_HIGHFEE_ERROR;
         }
     }
@@ -159,7 +159,7 @@ Result CreatePointTransaction(CWallet* wallet, const CTxDestination &senderDest,
         errors.push_back("Invalid amount");
         return Result::INVALID_PARAMETER;
     } if (nAmount < PROTOCOL_POINT_AMOUNT_MIN) {
-        errors.push_back(strprintf("Point amount too minimal, require more than %s BHD", FormatMoney(PROTOCOL_POINT_AMOUNT_MIN)));
+        errors.push_back(strprintf("Point amount too minimal, require more than %s BFS", FormatMoney(PROTOCOL_POINT_AMOUNT_MIN)));
         return Result::INVALID_PARAMETER;
     }
 

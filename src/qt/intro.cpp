@@ -126,8 +126,8 @@ Intro::Intro(QWidget *parent, uint64_t blockchain_size, uint64_t chain_state_siz
     ui->lblExplanation1->setText(ui->lblExplanation1->text()
         .arg(BitcoinGUI::tr(PACKAGE_NAME))
         .arg(m_blockchain_size)
-        .arg(2018)
-        .arg(tr("BitcoinHD"))
+        .arg(2020)
+        .arg(tr("BFScoin"))
     );
     ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(BitcoinGUI::tr(PACKAGE_NAME)));
 
@@ -136,7 +136,7 @@ Intro::Intro(QWidget *parent, uint64_t blockchain_size, uint64_t chain_state_siz
         ui->prune->setChecked(true);
         ui->prune->setEnabled(false);
     }
-    ui->prune->setText(tr("Discard blocks after verification, except most recent %1 GB (prune)").arg(pruneTarget ? pruneTarget / 1000 : 2));
+    ui->prune->setText(tr("Discard blocks after verification, except most recent %1 GB (prune)").arg(pruneTarget ? pruneTarget / 1000 : 3));
     requiredSpace = m_blockchain_size;
     QString storageRequiresMsg = tr("At least %1 GB of data will be stored in this directory, and it will grow over time.");
     if (pruneTarget) {
@@ -151,7 +151,7 @@ Intro::Intro(QWidget *parent, uint64_t blockchain_size, uint64_t chain_state_siz
     }
     requiredSpace += m_chain_state_size;
     ui->sizeWarningLabel->setText(
-        tr("%1 will download and store a copy of the BitcoinHD block chain.").arg(BitcoinGUI::tr(PACKAGE_NAME)) + " " +
+        tr("%1 will download and store a copy of the BFScoin block chain.").arg(BitcoinGUI::tr(PACKAGE_NAME)) + " " +
         storageRequiresMsg.arg(requiredSpace) + " " +
         tr("The wallet will also be stored in this directory.")
     );
@@ -244,7 +244,7 @@ bool Intro::showIfNeeded(interfaces::Node& node, bool& did_show_intro, bool& pru
         settings.setValue("fReset", false);
     }
     /* Only override -datadir if different from the default, to make it possible to
-     * override -datadir in the btchd.conf file in the default data directory
+     * override -datadir in the bfscoin.conf file in the default data directory
      * (to be consistent with bitcoind behavior)
      */
     if(dataDir != GUIUtil::getDefaultDataDirectory()) {

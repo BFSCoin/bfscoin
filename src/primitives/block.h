@@ -29,6 +29,7 @@ public:
     uint64_t nBaseTarget;
     uint64_t nNonce;
     uint64_t nPlotterId;
+    uint64_t nPledgeCapacity;
     // block signature by generator
     std::vector<unsigned char> vchPubKey;
     std::vector<unsigned char> vchSignature;
@@ -52,6 +53,7 @@ public:
         READWRITE(nFlags);
         READWRITE(nNonce);
         READWRITE(nPlotterId);
+        READWRITE(nPledgeCapacity);
         nBaseTarget = nFlags & 0x7fffffffffffffffL;
         if (nFlags & 0x8000000000000000L) {
             READWRITE(LIMITED_VECTOR(vchPubKey, CPubKey::COMPRESSED_PUBLIC_KEY_SIZE));
@@ -71,6 +73,7 @@ public:
         nBaseTarget = 0;
         nNonce = 0;
         nPlotterId = 0;
+        nPledgeCapacity = 0;
         vchPubKey.clear();
         vchSignature.clear();
     }
@@ -134,6 +137,7 @@ public:
         block.nBaseTarget    = nBaseTarget;
         block.nNonce         = nNonce;
         block.nPlotterId     = nPlotterId;
+        block.nPledgeCapacity = nPledgeCapacity;
         block.vchPubKey      = vchPubKey;
         block.vchSignature   = vchSignature;
         return block;

@@ -144,8 +144,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(static_cast<int64_t>(nonce)) << CScriptNum(static_cast<int64_t>(plotterId))) + COINBASE_FLAGS;
     assert(coinbaseTx.vin[0].scriptSig.size() <= 100);
     // Reward
-    BlockReward blockReward = GetBlockReward(pindexPrev, nFees, generatorAccountID, plotterId, ::ChainstateActive().CoinsTip(), chainparams.GetConsensus());
-    assert(blockReward.miner + blockReward.accumulate >= 0);
+    int64_t nMinerCapacityTB = 0;
+    BlockReward blockReward = GetBlockReward(pindexPrev, &nMinerCapacityTB, nFees, generatorAccountID, plotterId, ::ChainstateActive().CoinsTip(), chainparams.GetConsensus());
+    assert(blockReward.miner + blockReward.excess >= 0);
     unsigned int fundOutIndex = std::numeric_limits<unsigned int>::max();
     if (blockReward.miner0 != 0) {
         // Let old wallet can verify
@@ -161,13 +162,20 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     } else if (blockReward.fund != 0) {
         fundOutIndex = 1;
         coinbaseTx.vout.resize(2);
+        if (blockReward.fundMicroClub != 0) {
+            coinbaseTx.vout.resize(3);
+            coinbaseTx.vout[2].scriptPubKey = GetScriptForDestination(DecodeDestination(chainparams.GetConsensus().BFSMicroClubAddress));   //×ªµ½MicroClub
+            coinbaseTx.vout[2].nValue = blockReward.fundMicroClub;
+        } else {
+            coinbaseTx.vout.resize(2);
+        }
     } else {
         coinbaseTx.vout.resize(1);
     }
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = blockReward.miner + blockReward.accumulate;
+    coinbaseTx.vout[0].nValue = blockReward.miner + blockReward.excess;
     if (fundOutIndex < coinbaseTx.vout.size()) {
-        coinbaseTx.vout[fundOutIndex].scriptPubKey = GetScriptForDestination(DecodeDestination(chainparams.GetConsensus().BHDFundAddress));
+        coinbaseTx.vout[fundOutIndex].scriptPubKey = GetScriptForDestination(DecodeDestination(chainparams.GetConsensus().BFSFundAddress));
         coinbaseTx.vout[fundOutIndex].nValue = blockReward.fund;
     }
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
@@ -180,6 +188,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
     pblock->nNonce         = nonce;
     pblock->nPlotterId     = plotterId;
+    pblock->nPledgeCapacity = nMinerCapacityTB;
     pblock->nBaseTarget    = poc::CalculateBaseTarget(*pindexPrev, *pblock, chainparams.GetConsensus());
 
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
@@ -188,7 +197,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     if (plotterId != 0) {
         // Signature
-        if (nHeight >= chainparams.GetConsensus().BHDIP007Height && (!privKey || !privKey->IsValid() || !sign(*pblock, *privKey))) {
+        if (nHeight >= chainparams.GetConsensus().BFSIP002LimitBindPlotterHeight && (!privKey || !privKey->IsValid() || !sign(*pblock, *privKey))) {
             throw std::runtime_error(strprintf("%s: Signature block error", __func__));
         }
 

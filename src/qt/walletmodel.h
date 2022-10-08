@@ -153,8 +153,8 @@ public:
         TransactionCommitFailed,
         AbsurdFee,
         PaymentRequestExpired,
-        // For BHDIP006
-        InactivedBHDIP006,
+        // For BFSIP002
+        InactivedBFSIP002,
         InvalidBindPlotterAmount,
         BindPlotterExist,
         SmallPointAmount,

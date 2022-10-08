@@ -76,6 +76,9 @@ private:
     // Get operate method
     PayOperateMethod getPayOperateMethod();
 
+    // Is mirco_club addres
+    bool isMircoClubOfWallet();
+
 private Q_SLOTS:
     void onOperateMethodComboBoxChanged(int index);
     void on_sendButton_clicked();

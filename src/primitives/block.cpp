@@ -24,13 +24,13 @@ uint256 CBlockHeader::GetUnsignaturedHash() const
 std::string CBlock::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CBlock(hash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBaseTarget=%08x, nNonce=%" PRIu64 ", nPlotterId=%" PRIu64 ", vtx=%u)\n",
+    s << strprintf("CBlock(hash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBaseTarget=%08x, nNonce=%" PRIu64 ", nPlotterId=%" PRIu64 ", nPledgeCapacity=%" PRIu64 ", vtx=%u)\n",
         GetHash().ToString(),
         nVersion,
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),
         nTime, nBaseTarget, nNonce, nPlotterId,
-        vtx.size());
+        nPledgeCapacity, vtx.size());
     for (const auto& tx : vtx) {
         s << "  " << tx->ToString() << "\n";
     }

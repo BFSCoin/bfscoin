@@ -28,13 +28,14 @@
 
 // Amount column is right-aligned it contains numbers
 static int column_alignments[] = {
-        Qt::AlignLeft|Qt::AlignVCenter, /* status */
-        Qt::AlignLeft|Qt::AlignVCenter, /* watchonly */
-        Qt::AlignLeft|Qt::AlignVCenter, /* date */
-        Qt::AlignLeft|Qt::AlignVCenter, /* type */
-        Qt::AlignLeft|Qt::AlignVCenter, /* address */
-        Qt::AlignRight|Qt::AlignVCenter /* amount */
-    };
+    Qt::AlignLeft | Qt::AlignVCenter, /* status */
+    Qt::AlignLeft | Qt::AlignVCenter, /* watchonly */
+    Qt::AlignLeft | Qt::AlignVCenter, /* height */
+    Qt::AlignLeft | Qt::AlignVCenter, /* date */
+    Qt::AlignLeft | Qt::AlignVCenter, /* type */
+    Qt::AlignLeft | Qt::AlignVCenter, /* address */
+    Qt::AlignRight | Qt::AlignVCenter /* amount */
+};
 
 // Comparison operator for sort/binary search of model tx list
 struct TxLessThan
@@ -222,7 +223,7 @@ TransactionTableModel::TransactionTableModel(const PlatformStyle *_platformStyle
         fProcessingQueuedTransactions(false),
         platformStyle(_platformStyle)
 {
-    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns << QString() << QString() << tr("Height") << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
     priv->refreshWallet(walletModel->wallet());
 
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &TransactionTableModel::updateDisplayUnit);
@@ -303,7 +304,7 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
         status = tr("Abandoned");
         break;
     case TransactionStatus::Confirming:
-        status = tr("Confirming (%1 of %2 recommended confirmations)").arg(wtx->status.depth).arg(TransactionRecord::RecommendedNumConfirmations);
+        status = tr("Confirming (%1 of %2 recommended confirmations)").arg(wtx->status.depth).arg(wtx->m_confirm_target);
         break;
     case TransactionStatus::Confirmed:
         status = tr("Confirmed (%1 confirmations)").arg(wtx->status.depth);
@@ -329,6 +330,15 @@ QString TransactionTableModel::formatTxDate(const TransactionRecord *wtx) const
         return GUIUtil::dateTimeStr(wtx->time);
     }
     return QString();
+}
+
+QString TransactionTableModel::formatTxHeight(const TransactionRecord* wtx) const
+{
+    const int nHeight = wtx->status.cur_num_blocks - wtx->status.depth + 1;
+    if (nHeight <= 0 || nHeight > wtx->status.cur_num_blocks) {
+        return QString();
+    }
+    return QString::number(nHeight);
 }
 
 /* Look up address in address book, if found return label (address)
@@ -512,7 +522,7 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord *wtx)
     case TransactionStatus::Abandoned:
         return QIcon(":/icons/transaction_abandoned");
     case TransactionStatus::Confirming:
-        switch(wtx->status.depth)
+        switch((wtx->status.depth * 4 / wtx->m_confirm_target) + 1)
         {
         case 1: return QIcon(":/icons/transaction_1");
         case 2: return QIcon(":/icons/transaction_2");
@@ -587,6 +597,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         {
         case Date:
             return formatTxDate(rec);
+        case Height:
+            return formatTxHeight(rec);
         case Type:
             return formatTxType(rec);
         case ToAddress:
@@ -603,6 +615,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
             return QString::fromStdString(rec->status.sortKey);
         case Date:
             return rec->time;
+        case Height:
+            return formatTxHeight(rec);
         case Type:
             return formatTxType(rec);
         case Watchonly:
@@ -717,6 +731,12 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         return formatTxAmount(rec, false, BitcoinUnits::separatorNever);
     case StatusRole:
         return rec->status.status;
+    case HeightRole:
+        const int nHeight = rec->status.cur_num_blocks - rec->status.depth + 1;
+        if (nHeight <= 0 || nHeight > rec->status.cur_num_blocks) {
+            return QVariant();
+        }
+        return nHeight;
     }
     return QVariant();
 }
@@ -740,6 +760,8 @@ QVariant TransactionTableModel::headerData(int section, Qt::Orientation orientat
                 return tr("Transaction status. Hover over this field to show number of confirmations.");
             case Date:
                 return tr("Date and time that the transaction was received.");
+            case Height:
+                return tr("Height of transaction.");
             case Type:
                 return tr("Type of transaction.");
             case Watchonly:

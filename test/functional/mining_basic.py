@@ -100,7 +100,7 @@ class MiningTest(BitcoinTestFramework):
         block.nVersion = tmpl["version"]
         block.hashPrevBlock = int(tmpl["previousblockhash"], 16)
         block.nTime = tmpl["curtime"]
-        block.nBits = int(tmpl["bits"], 16)
+        block.nPlotterId = int(tmpl["bits"], 16)
         block.nNonce = 0
         block.vtx = [coinbase_tx]
 
@@ -156,7 +156,7 @@ class MiningTest(BitcoinTestFramework):
 
         self.log.info("getblocktemplate: Test bad bits")
         bad_block = copy.deepcopy(block)
-        bad_block.nBits = 469762303  # impossible in the real world
+        bad_block.nPlotterId = 469762303  # impossible in the real world
         assert_template(node, bad_block, 'bad-diffbits')
 
         self.log.info("getblocktemplate: Test bad merkle root")

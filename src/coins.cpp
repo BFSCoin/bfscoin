@@ -121,7 +121,7 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
 void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool check) {
     // Parse special transaction
     CDatacarrierPayloadRef extraData;
-    if (nHeight >= Params().GetConsensus().BHDIP006Height)
+    if (nHeight >= Params().GetConsensus().BFSIP002Height)
         extraData = ExtractTransactionDatacarrier(tx, nHeight, DatacarrierTypes{DATACARRIER_TYPE_BINDPLOTTER, DATACARRIER_TYPE_POINT});
 
     // Add coin
@@ -149,7 +149,7 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout, bool r
     if (moveout)
         *moveout = it->second.coin;
 
-    if (!rollback && it->second.coin.IsBindPlotter() && it->second.coin.nHeight >= Params().GetConsensus().BHDIP007Height) {
+    if (!rollback && it->second.coin.IsBindPlotter() && it->second.coin.nHeight >= Params().GetConsensus().BFSIP002LimitBindPlotterHeight) {
         it->second.flags |= CCoinsCacheEntry::DIRTY | CCoinsCacheEntry::UNBIND;
         it->second.flags &= ~CCoinsCacheEntry::FRESH;
         it->second.coin.Clear();
@@ -455,7 +455,7 @@ CBindPlotterInfo CCoinsViewCache::GetChangeBindPlotterInfo(const CBindPlotterInf
 
     CBindPlotterInfo changeBindInfo;
     if (compatible) {
-        // Compatible BHDIP007 before. Use last active coin
+        // Compatible BFSIP002 before. Use last active coin
         for (const auto& pair : GetBindPlotterEntries(sourceBindInfo.plotterId)) {
             if (!pair.second.valid ||
                     (pair.first == sourceBindInfo.outpoint) ||

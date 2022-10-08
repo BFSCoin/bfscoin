@@ -157,10 +157,10 @@ void CBlockIndex::Update(const Consensus::Params& params)
     // Genearation signature
     static uint256 dummyGenerationSignature;
     generationSignature = pprev ? &pprev->nextGenerationSignature : &dummyGenerationSignature;
-    if (nHeight + 1 <= params.BHDIP001PreMiningEndHeight) {
+    if (nHeight + 1 <= params.BFSIP001PreMiningEndHeight) {
         //! Pre-Mining not exist generation signature
         nextGenerationSignature.SetNull();
-    } else if (nHeight + 1 <= params.BHDIP007Height) {
+    } else if (nHeight + 1 <= params.BFSIP002LimitBindPlotterHeight) {
         //! hashMerkleRoot + nPlotterId. Unsafe
         // Legacy consensus use little endian
         uint64_t plotterId = htole64(nPlotterId);

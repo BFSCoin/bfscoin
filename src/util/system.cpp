@@ -69,7 +69,7 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char * const BITCOIN_CONF_FILENAME = "btchd.conf";
+const char * const BITCOIN_CONF_FILENAME = "bfscoin.conf";
 
 ArgsManager gArgs;
 
@@ -519,6 +519,18 @@ int64_t ArgsManager::GetArg(const std::string& strArg, int64_t nDefault) const
     return nDefault;
 }
 
+uint64_t ArgsManager::GetUArg(const std::string& strArg, uint64_t nDefault) const
+{
+    if (IsArgNegated(strArg)) return 0ULL;
+    std::pair<bool, std::string> found_res = ArgsManagerHelper::GetArg(*this, strArg);
+    if (found_res.first) {
+        uint64_t nVal = 0ULL;
+        if (!ParseUInt64(found_res.second, &nVal)) return nDefault;
+        return nVal;
+    }
+    return nDefault;
+}
+
 bool ArgsManager::GetBoolArg(const std::string& strArg, bool fDefault) const
 {
     if (IsArgNegated(strArg)) return false;
@@ -703,13 +715,13 @@ void PrintExceptionContinue(const std::exception* pex, const char* pszThread)
 
 fs::path GetDefaultDataDir()
 {
-    // Windows < Vista: C:\Documents and Settings\Username\Application Data\btchd
-    // Windows >= Vista: C:\Users\Username\AppData\Roaming\btchd
-    // Mac: ~/Library/Application Support/btchd
-    // Unix: ~/.btchd
+    // Windows < Vista: C:\Documents and Settings\Username\Application Data\bfscoin
+    // Windows >= Vista: C:\Users\Username\AppData\Roaming\bfscoin
+    // Mac: ~/Library/Application Support/bfscoin
+    // Unix: ~/.bfscoin
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "btchd";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "bfscoin";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -719,10 +731,10 @@ fs::path GetDefaultDataDir()
         pathRet = fs::path(pszHome);
 #ifdef MAC_OSX
     // Mac
-    return pathRet / "Library/Application Support/btchd";
+    return pathRet / "Library/Application Support/bfscoin";
 #else
     // Unix
-    return pathRet / ".btchd";
+    return pathRet / ".bfscoin";
 #endif
 #endif
 }
@@ -1224,14 +1236,14 @@ int GetNumCores()
 std::string CopyrightHolders(const std::string& strTemplate)
 {
     std::string strCopyrightHolders;
-    // BitcoinHD Core
-    strCopyrightHolders += strprintf(strTemplate, strprintf("2017-%i ", COPYRIGHT_YEAR) + strprintf(_(COPYRIGHT_HOLDERS).translated, _(COPYRIGHT_HOLDERS_SUBSTITUTION).translated));
+    // BFScoin Core
+    strCopyrightHolders += strprintf(strTemplate, strprintf("2019-%i ", COPYRIGHT_YEAR) + strprintf(_(COPYRIGHT_HOLDERS).translated, _(COPYRIGHT_HOLDERS_SUBSTITUTION).translated));
 #ifdef ENABLE_OMNICORE
     // Omni Core
     strCopyrightHolders += "\n" + strprintf(strTemplate, std::string("2013-2015 ") + strprintf(_("The %s developers").translated, _("Omni Core").translated));
 #endif
     // Bitcoin Core
-    strCopyrightHolders += "\n" + strprintf(strTemplate, std::string("2009-2019 ") + strprintf(_("The %s developers").translated, _("Bitcoin Core").translated));
+    strCopyrightHolders += "\n" + strprintf(strTemplate, std::string("2009-2022 ") + strprintf(_("The %s developers").translated, _("Bitcoin Core").translated));
 
     return strCopyrightHolders;
 }

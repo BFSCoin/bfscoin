@@ -47,11 +47,11 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "BitcoinHD"
-#define QAPP_ORG_DOMAIN "btchd.org"
-#define QAPP_APP_NAME_DEFAULT "BitcoinHD Chain"             //! Legacy name
-#define QAPP_APP_NAME_TESTNET "BitcoinHD Chain [testnet]"   //! Legacy name
-#define QAPP_APP_NAME_REGTEST "BitcoinHD Chain [regtest]"   //! Legacy name
+#define QAPP_ORG_NAME "BFScoin"
+#define QAPP_ORG_DOMAIN "bfscoin.org"
+#define QAPP_APP_NAME_DEFAULT "BFScoin Chain"             //! Legacy name
+#define QAPP_APP_NAME_TESTNET "BFScoin Chain [testnet]"   //! Legacy name
+#define QAPP_APP_NAME_REGTEST "BFScoin Chain [regtest]"   //! Legacy name
 
 /* One gigabyte (GB) in bytes */
 static constexpr uint64_t GB_BYTES{1000000000};

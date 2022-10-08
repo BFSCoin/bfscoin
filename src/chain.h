@@ -132,7 +132,7 @@ enum BlockStatus: uint32_t {
 
     BLOCK_HAVE_SIGNATURE     =  256, //!< signature data for block
 
-    BLOCK_UNCONDITIONAL      =  512, //!< unconditional block. Only valid after BHDIP008
+    BLOCK_UNCONDITIONAL      =  512, //!< unconditional block.
 };
 
 /** The block chain is a tree shaped structure starting with the
@@ -189,6 +189,7 @@ public:
     uint64_t nBaseTarget;
     uint64_t nNonce;
     uint64_t nPlotterId;
+    uint64_t nPledgeCapacity;
     std::vector<unsigned char> vchPubKey;
     std::vector<unsigned char> vchSignature;
 
@@ -230,6 +231,7 @@ public:
         nBaseTarget    = 0;
         nNonce         = 0;
         nPlotterId     = 0;
+        nPledgeCapacity = 0;
         vchPubKey.clear();
         vchSignature.clear();
     }
@@ -249,6 +251,7 @@ public:
         nBaseTarget    = block.nBaseTarget;
         nNonce         = block.nNonce;
         nPlotterId     = block.nPlotterId;
+        nPledgeCapacity = block.nPledgeCapacity;
         vchPubKey      = block.vchPubKey;
         vchSignature   = block.vchSignature;
     }
@@ -282,6 +285,7 @@ public:
         block.nBaseTarget    = nBaseTarget;
         block.nNonce         = nNonce;
         block.nPlotterId     = nPlotterId;
+        block.nPledgeCapacity = nPledgeCapacity;
         block.vchPubKey      = vchPubKey;
         block.vchSignature   = vchSignature;
         return block;
@@ -429,6 +433,7 @@ public:
         READWRITE(nBaseTarget);
         READWRITE(nNonce);
         READWRITE(nPlotterId);
+        READWRITE(nPledgeCapacity);
         if (nStatus & BLOCK_HAVE_SIGNATURE) {
             READWRITE(LIMITED_VECTOR(vchPubKey, CPubKey::COMPRESSED_PUBLIC_KEY_SIZE));
             READWRITE(LIMITED_VECTOR(vchSignature, CPubKey::SIGNATURE_SIZE));
@@ -445,6 +450,7 @@ public:
         block.nBaseTarget     = nBaseTarget;
         block.nNonce          = nNonce;
         block.nPlotterId      = nPlotterId;
+        block.nPledgeCapacity = nPledgeCapacity;
         block.vchPubKey       = vchPubKey;
         block.vchSignature    = vchSignature;
         return block.GetHash();

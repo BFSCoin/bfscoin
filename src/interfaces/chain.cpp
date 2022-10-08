@@ -391,7 +391,7 @@ public:
     std::pair<CAmount,int> getBindPlotterPunishment(int bindHeight, uint64_t plotterId) override
     {
         const Consensus::Params& consensusParams = Params().GetConsensus();
-        if (bindHeight >= consensusParams.BHDIP006LimitBindPlotterHeight) {
+        if (bindHeight >= consensusParams.BFSIP002LimitBindPlotterHeight) {
             LOCK(::cs_main);
             const CBindPlotterInfo lastBindInfo = ::ChainstateActive().CoinsTip().GetLastBindPlotterInfo(plotterId);
             if (!lastBindInfo.outpoint.IsNull()) {

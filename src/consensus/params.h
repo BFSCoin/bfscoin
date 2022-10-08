@@ -6,7 +6,12 @@
 #ifndef BITCOIN_CONSENSUS_PARAMS_H
 #define BITCOIN_CONSENSUS_PARAMS_H
 
+#if defined(HAVE_CONFIG_H)
+#include <config/bitcoin-config.h>
+#endif
+
 #include <amount.h>
+#include <atomic>
 #include <uint256.h>
 #include <limits>
 #include <map>
@@ -47,57 +52,61 @@ struct BIP9Deployment {
  * Parameters that influence chain consensus.
  */
 struct Params {
-    /** BitcoinHD Fund address */
-    std::string BHDFundAddress;
-    std::set<std::string> BHDFundAddressPool;
+    /** BFScoin Fund address */
+    std::string BFSFundAddress;
+    std::set<std::string> BFSFundAddressPool;
+
+    /** BFScoin MicroClub address */
+    std::string BFSMicroClubAddress;
 
     uint256 hashGenesisBlock;
     /** Subsidy halving interval blocks base on 600 seconds */
     int nSubsidyHalvingInterval;
     int nCapacityEvalWindow;
 
-    /** BHDIP = BitcoinHD Improvement Proposals, like BIP */
-    /** BitcoinHD target spacing */
-    int BHDIP001TargetSpacing;
-    /** BitcoinHD fund pre-mining height */
-    int BHDIP001PreMiningEndHeight;
-    /** BitcoinHD fund zero height */
-    int BHDIP001FundZeroLastHeight;
-    /** BitcoinHD fund royalty for full pledge. 1000% */
-    int BHDIP001FundRoyaltyForFullMortgage;
-    /** BitcoinHD fund royalty for low pledge. 1000% */
-    int BHDIP001FundRoyaltyForLowMortgage;
-    /** BitcoinHD miner mining ratio per TB */
-    CAmount BHDIP001MiningRatio;
+    /** BFSIP = BFScoin Improvement Proposals, like BIP */
+    /** BFScoin target spacing */
+    int BFSIP001TargetSpacing;
+    /** BFScoin fund pre-mining height */
+    int BFSIP001PreMiningEndHeight;
+    /** BFScoin fund zero height */
+    int BFSIP001FundZeroLastHeight;
+    /** BFScoin fund royalty for fixed. 1000% */
+    int BFSIP001FundRoyaltyForFixed;
+    /** BFScoin miner for lowest reward. 1000% */
+    int BFSIP001MinerForLowestReward;
+    /** BFScoin miner mining ratio per TB */
+    CAmount BFSIP001MiningRatio;
+    int64_t BFSIP001MiningRatioStageFirst;
+    int64_t BFSIP001MiningRatioStageSecond;
+    int BFSIP001SmoothHeight;
 
-    /** View all BHDIP document on https://btchd.org/wiki/BHDIP */
-    /** Block height at which BHDIP004 becomes active */
-    int BHDIP004Height;
-    /** Block height at which BHDIP004 becomes inactive */
-    int BHDIP004AbandonHeight;
+    /** Block height at which BFSIP002 becomes active */
+    int BFSIP002Height;
+    int BFSIP002BindPlotterActiveHeight;
+    int BFSIP002CheckRelayHeight;
+    int BFSIP002LimitBindPlotterHeight;
 
-    /** Block height at which BHDIP006 becomes active */
-    int BHDIP006Height;
-    /** Block height at which BHDIP006 bind plotter becomes active */
-    int BHDIP006BindPlotterActiveHeight;
-    int BHDIP006CheckRelayHeight;
-    int BHDIP006LimitBindPlotterHeight;
+    /** Block height at which BFSIP003 becomes active
+        Adjust the calculation of the base target */
+    int BFSIP003Height;
 
-    /** Block height at which BHDIP007 becomes active */
-    int BHDIP007Height;
-    int BHDIP007SmoothEndHeight;
-    int64_t BHDIP007MiningRatioStage;
+    #ifdef CUSTOM_GENERATE_COINS
+    int BFSIP003GenerateStartHeight;
+    int BFSIP003GenerateEndHeight;
+    int BFSIP003CheckTxEndHeight;
+    int BFSIP003SpendRatio;
+    CAmount BFSIP003ExcessAmount;
+    std::set<std::string> BFSIP003GenerateAddress;
+    std::map<std::string, std::string> BFSIP003GenerateVinSig;
+    #endif
 
-    /** Block height at which BHDIP008 becomes active */
-    int BHDIP008Height;
-    int BHDIP008TargetSpacing;
-    int BHDIP008FundRoyaltyForLowMortgage;
-    int BHDIP008FundRoyaltyDecreaseForLowMortgage;
-    int BHDIP008FundRoyaltyDecreasePeriodForLowMortgage;
+    int BFSIP004Height;
+    std::set<std::string> BFSIP004DisableAddress;
 
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
-     * (nPocTargetTimespan / BHDIP001TargetSpacing) which is also used for BIP9 deployments.
+     * (nPocTargetTimespan / BFSIP001TargetSpacing) which is also used for BIP9 deployments.
      * Examples: 1916 for 95%, 1512 for testchains.
      */
     int nRuleChangeActivationThreshold;
@@ -127,7 +136,7 @@ struct Params {
 
 // Get target time space
 inline int GetTargetSpacing(int nHeight, const Params& params) {
-    return nHeight >= params.BHDIP008Height ? params.BHDIP008TargetSpacing : params.BHDIP001TargetSpacing;
+    return params.BFSIP001TargetSpacing;
 }
 
 } // namespace Consensus

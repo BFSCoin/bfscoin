@@ -232,6 +232,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     s >> tx.nLockTime;
+    s >> tx.m_confirm_target;
 }
 
 template<typename Stream, typename TxType>
@@ -261,6 +262,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         }
     }
     s << tx.nLockTime;
+    s << tx.m_confirm_target;
 }
 
 
@@ -291,6 +293,8 @@ public:
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
     const uint32_t nLockTime;
+
+    int m_confirm_target = 6;
 
 private:
     /** Memory only. */
@@ -377,6 +381,7 @@ struct CMutableTransaction
     std::vector<CTxOut> vout;
     int32_t nVersion;
     uint32_t nLockTime;
+    int m_confirm_target = 6;
 
     CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);

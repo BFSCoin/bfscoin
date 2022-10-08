@@ -589,7 +589,7 @@ class FullBlockTest(BitcoinTestFramework):
         b44 = CBlock()
         b44.nTime = self.tip.nTime + 1
         b44.hashPrevBlock = self.tip.sha256
-        b44.nBits = 0x207fffff
+        b44.nPlotterId = 0x207fffff
         b44.vtx.append(coinbase)
         b44.hashMerkleRoot = b44.calc_merkle_root()
         b44.solve()
@@ -603,7 +603,7 @@ class FullBlockTest(BitcoinTestFramework):
         b45 = CBlock()
         b45.nTime = self.tip.nTime + 1
         b45.hashPrevBlock = self.tip.sha256
-        b45.nBits = 0x207fffff
+        b45.nPlotterId = 0x207fffff
         b45.vtx.append(non_coinbase)
         b45.hashMerkleRoot = b45.calc_merkle_root()
         b45.calc_sha256()
@@ -618,7 +618,7 @@ class FullBlockTest(BitcoinTestFramework):
         b46 = CBlock()
         b46.nTime = b44.nTime + 1
         b46.hashPrevBlock = b44.sha256
-        b46.nBits = 0x207fffff
+        b46.nPlotterId = 0x207fffff
         b46.vtx = []
         b46.hashMerkleRoot = 0
         b46.solve()
@@ -631,7 +631,7 @@ class FullBlockTest(BitcoinTestFramework):
         self.log.info("Reject a block with invalid work")
         self.move_tip(44)
         b47 = self.next_block(47, solve=False)
-        target = uint256_from_compact(b47.nBits)
+        target = uint256_from_compact(b47.nPlotterId)
         while b47.sha256 < target:
             b47.nNonce += 1
             b47.rehash()
@@ -654,7 +654,7 @@ class FullBlockTest(BitcoinTestFramework):
         self.log.info("Reject a block with incorrect POW limit")
         self.move_tip(44)
         b50 = self.next_block(50)
-        b50.nBits = b50.nBits - 1
+        b50.nPlotterId = b50.nPlotterId - 1
         b50.solve()
         self.send_blocks([b50], False, force_send=True, reject_reason='bad-diffbits', reconnect=True)
 

@@ -82,18 +82,18 @@ TESTS =
 BENCHMARKS =
 
 if BUILD_BITCOIND
-  bin_PROGRAMS += btchdd
+  bin_PROGRAMS += bfscoind
 endif
 
 if BUILD_BITCOIN_CLI
-  bin_PROGRAMS += btchd-cli
+  bin_PROGRAMS += bfscoin-cli
 endif
 if BUILD_BITCOIN_TX
-  bin_PROGRAMS += btchd-tx
+  bin_PROGRAMS += bfscoin-tx
 endif
 if ENABLE_WALLET
 if BUILD_BITCOIN_WALLET
-  bin_PROGRAMS += btchd-wallet
+  bin_PROGRAMS += bfscoin-wallet
 endif
 endif
 
@@ -370,6 +370,8 @@ crypto_libbitcoin_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
+  crypto/aes256.cpp \
+  crypto/aes256.h \
   crypto/chacha_poly_aead.h \
   crypto/chacha_poly_aead.cpp \
   crypto/chacha20.h \
@@ -554,18 +556,18 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # bitcoind binary #
-btchdd_SOURCES = bitcoind.cpp
-btchdd_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-btchdd_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-btchdd_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+bfscoind_SOURCES = bitcoind.cpp
+bfscoind_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+bfscoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bfscoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-btchdd_SOURCES += bitcoind-res.rc
+bfscoind_SOURCES += bitcoind-res.rc
 endif
 
 # Libraries below may be listed more than once to resolve circular dependencies (see
 # https://eli.thegreenplace.net/2013/07/09/library-order-in-static-linking#circular-dependency)
-btchdd_LDADD = \
+bfscoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_SERVER) \
@@ -580,38 +582,38 @@ btchdd_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-btchdd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+bfscoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
-btchd_cli_SOURCES = bitcoin-cli.cpp
-btchd_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
-btchd_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-btchd_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+bfscoin_cli_SOURCES = bitcoin-cli.cpp
+bfscoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
+bfscoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bfscoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-btchd_cli_SOURCES += bitcoin-cli-res.rc
+bfscoin_cli_SOURCES += bitcoin-cli-res.rc
 endif
 
-btchd_cli_LDADD = \
+bfscoin_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-btchd_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+bfscoin_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
-btchd_tx_SOURCES = bitcoin-tx.cpp
-btchd_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-btchd_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-btchd_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+bfscoin_tx_SOURCES = bitcoin-tx.cpp
+bfscoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+bfscoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bfscoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-btchd_tx_SOURCES += bitcoin-tx-res.rc
+bfscoin_tx_SOURCES += bitcoin-tx-res.rc
 endif
 
-btchd_tx_LDADD = \
+bfscoin_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
@@ -619,20 +621,20 @@ btchd_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-btchd_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+bfscoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 #
 
 # bitcoin-wallet binary #
-btchd_wallet_SOURCES = bitcoin-wallet.cpp
-btchd_wallet_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-btchd_wallet_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-btchd_wallet_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+bfscoin_wallet_SOURCES = bitcoin-wallet.cpp
+bfscoin_wallet_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+bfscoin_wallet_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bfscoin_wallet_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-btchd_wallet_SOURCES += bitcoin-wallet-res.rc
+bfscoin_wallet_SOURCES += bitcoin-wallet-res.rc
 endif
 
-btchd_wallet_LDADD = \
+bfscoin_wallet_LDADD = \
   $(LIBBITCOIN_WALLET_TOOL) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_COMMON) \
@@ -646,7 +648,7 @@ btchd_wallet_LDADD = \
   $(LIBSECP256K1) \
   $(LIBUNIVALUE)
 
-btchd_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(ZMQ_LIBS)
+bfscoin_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(ZMQ_LIBS)
 #
 
 # bitcoinconsensus library #

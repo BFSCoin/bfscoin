@@ -79,14 +79,69 @@ void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char he
     CHMAC_SHA512(chainCode.begin(), chainCode.size()).Write(&header, 1).Write(data, 32).Write(num, 4).Finalize(output);
 }
 
-uint64_t PocLegacy::GeneratePlotterId(const std::string &passphrase)
+bool PocLegacy::SplitPassphrase(const std::string& strSrc, const std::string& strSeperator, std::vector<std::string>& vecRet)
+{
+    std::string::size_type pos1, pos2;
+    pos2 = strSrc.find(strSeperator);
+    pos1 = 0;
+    while (std::string::npos != pos2) {
+        vecRet.push_back(strSrc.substr(pos1, pos2 - pos1));
+        pos1 = pos2 + strSeperator.size();
+        pos2 = strSrc.find(strSeperator, pos1);
+    }
+    if (pos1 != strSrc.length())
+        vecRet.push_back(strSrc.substr(pos1));
+
+    return (false == vecRet.empty());
+}
+
+std::string PocLegacy::ConvertWord(std::string& strWord)
+{
+    if (strWord.empty())
+    {
+        return std::string();
+    }
+
+    // deal a-x
+    if (strWord[0] >= 'a' && strWord[0] < 'x')
+        strWord[0] += 2;
+    else if (strWord[0] == 'y')
+        strWord[0] = 'a';
+    else if (strWord[0] == 'z')
+        strWord[0] = 'b';
+
+    return strWord;
+}
+
+std::string PocLegacy::ConvertPassphrase(const std::string& strPassphrase)
+{
+    std::vector<std::string> listWord;
+    if (!SplitPassphrase(strPassphrase, " ", listWord)) return std::string();
+
+    std::string strPassphraseRet;
+    for (int i = 0; i < listWord.size(); i++) {
+        if (!strPassphraseRet.empty())
+            strPassphraseRet.append(" ");
+        if (i % 2 != 0) {
+            strPassphraseRet.append(ConvertWord(listWord.at(i)));
+        } else {
+            strPassphraseRet.append(listWord.at(i));
+        }
+    }
+    return strPassphraseRet;
+}
+
+uint64_t PocLegacy::GeneratePlotterId(const std::string& passphrase)
 {
     // 1.passphraseHash = sha256(passphrase)
     // 2.<signingKey,publicKey> = Curve25519(passphraseHash)
     // 3.publicKeyHash = sha256(publicKey)
     // 4.unsigned int64 id = unsigned int64(publicKeyHash[0~7])
+    std::string strPassphrase = ConvertPassphrase(passphrase);
+    if (strPassphrase.empty()) return 0;
+
     uint8_t privateKey[32] = {0}, publicKey[32] = {0};
-    CSHA256().Write((const unsigned char*)passphrase.data(), (size_t)passphrase.length()).Finalize(privateKey);
+    CSHA256().Write((const unsigned char*)strPassphrase.data(), (size_t)strPassphrase.length()).Finalize(privateKey);
     crypto::curve25519_kengen(publicKey, nullptr, privateKey);
     return ToPlotterId(publicKey);
 }
@@ -108,7 +163,10 @@ uint64_t PocLegacy::ToPlotterId(const unsigned char publicKey[32])
 bool PocLegacy::Sign(const std::string &passphrase, const unsigned char data[32], unsigned char signature[64], unsigned char publicKey[32])
 {
     uint8_t privateKey[32] = {0}, signingKey[32] = {0};
-    CSHA256().Write((const unsigned char*)passphrase.data(), (size_t)passphrase.length()).Finalize(privateKey);
+    std::string strPassphrase = ConvertPassphrase(passphrase);
+    if (strPassphrase.empty()) return false;
+
+    CSHA256().Write((const unsigned char*)strPassphrase.data(), (size_t)strPassphrase.length()).Finalize(privateKey);
     crypto::curve25519_kengen(publicKey, signingKey, privateKey);
 
     unsigned char x[32], Y[32], h[32], v[32];

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The BitcoinHD Core developers
+// Copyright (c) 2017-2020 The BFScoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -62,8 +62,8 @@ static UniValue submitNonce(const JSONRPCRequest& request)
             "1. \"nonce\"           (string, required) Nonce\n"
             "2. \"plotterId\"       (string, required) Plotter ID\n"
             "3. \"height\"          (integer, optional) Target height for mining\n"
-            "4. \"address\"         (string, optional) Target address or private key (BHDIP007) for mining\n"
-            "5. \"checkBind\"       (boolean, optional, true) Check bind for BHDIP006\n"
+            "4. \"address\"         (string, optional) Target address or private key for mining\n"
+            "5. \"checkBind\"       (boolean, optional, true) Check bind for BFSIP002\n"
             "\nResult:\n"
             "{\n"
             "  [ result ]                  (string) Submit result: 'success' or others \n"
@@ -81,17 +81,17 @@ static UniValue submitNonce(const JSONRPCRequest& request)
     uint64_t nPlotterId = static_cast<uint64_t>(std::stoull(request.params[1].get_str()));
 
     int nTargetHeight = 0;
-    if (request.params.size() >= 3) {
+    if ((request.params.size() >= 3) && (!request.params[2].isNull())) {
         nTargetHeight = request.params[2].isNum() ? request.params[2].get_int() : std::stoi(request.params[2].get_str());
     }
 
     std::string generateTo;
-    if (request.params.size() >= 4) {
+    if ((request.params.size() >= 4) && (!request.params[3].isNull())) {
         generateTo = request.params[3].get_str();
     }
 
     bool fCheckBind = true;
-    if (request.params.size() >= 5) {
+    if ((request.params.size() >= 5) && (!request.params[4].isNull())) {
         fCheckBind = request.params[4].get_bool();
     }
 
@@ -129,7 +129,7 @@ static UniValue addSignPrivkey(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"privkey\"      (string, required) The string of the private key\n"
             "\nResult:\n"
-            "BitcoinHD mining address\n"
+            "BFScoin mining address\n"
         );
     }
 
@@ -146,7 +146,7 @@ static UniValue listSignAddresses(const JSONRPCRequest& request)
             "listsignaddresses\n"
             "\nList signature addresses for signature.\n"
             "\nResult:\n"
-            "BitcoinHD address\n"
+            "BFScoin address\n"
         );
     }
 
@@ -171,7 +171,7 @@ static UniValue getPlotterId(const JSONRPCRequest& request)
         );
     }
 
-    return PocLegacy::GeneratePlotterId(request.params[0].get_str());;
+    return PocLegacy::GeneratePlotterId(request.params[0].get_str());
 }
 
 static UniValue getNewPlotter(const JSONRPCRequest& request)

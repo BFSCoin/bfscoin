@@ -288,7 +288,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
             }
             else
 #endif
-            if (!rcp.message.isEmpty()) // Message from normal btchd:URI (btchd:123...?message=example)
+            if (!rcp.message.isEmpty()) // Message from normal bfscoin:URI (bfscoin:123...?message=example)
                 vOrderForm.emplace_back("Message", rcp.message.toStdString());
         }
 
@@ -614,6 +614,8 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
             QString::fromStdString(errors[0])+")");
          return false;
     }
+
+    m_wallet->setTransactionConflict(hash);
     return true;
 }
 

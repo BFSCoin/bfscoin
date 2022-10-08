@@ -118,7 +118,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
         } else {
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid BitcoinHD address: ") + name_);
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid BFScoin address: ") + name_);
             }
 
             if (!destinations.insert(destination).second) {
@@ -278,11 +278,18 @@ void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keyst
     }
 }
 
-UniValue SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, const std::map<COutPoint, Coin>& coins, const UniValue& hashType)
+UniValue SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, const std::map<COutPoint, Coin>& coins, const UniValue& hashType, const int& tipHeight)
 {
     int nHashType = ParseSighashString(hashType);
 
     bool fHashSingle = ((nHashType & ~SIGHASH_ANYONECANPAY) == SIGHASH_SINGLE);
+
+    std::set<CScript> disableScriptPubKey;
+    if ((tipHeight != 0) && (tipHeight >= Params().GetConsensus().BFSIP004Height)) {
+        for (const auto& address : Params().GetConsensus().BFSIP004DisableAddress) {
+            disableScriptPubKey.insert(GetScriptForDestination(DecodeDestination(address)));
+        }
+    }
 
     // Script verification errors
     UniValue vErrors(UniValue::VARR);
@@ -300,6 +307,13 @@ UniValue SignTransaction(CMutableTransaction& mtx, const SigningProvider* keysto
         }
         const CScript& prevPubKey = coin->second.out.scriptPubKey;
         const CAmount& amount = coin->second.out.nValue;
+
+        if (!disableScriptPubKey.empty()) {
+            if (disableScriptPubKey.find(prevPubKey) != disableScriptPubKey.end()) {
+                TxInErrorToJSON(txin, vErrors, "Input not available");
+                continue;
+            }
+        }
 
         SignatureData sigdata = DataFromTransaction(mtx, i, coin->second.out);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:

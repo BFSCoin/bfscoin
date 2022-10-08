@@ -1,39 +1,39 @@
-BitcoinHD Core integration/staging tree
+BFScoin Core integration/staging tree
 =======================================
 
-https://btchd.org
+https://bfscoin.org
 
 The Crypto Currency System Based on CPoC.
 
 Pay Tribute to Cryptocurrency Pioneers [Bitcoin](https://bitcoincore.org)
 and [Burst](https://www.burst-coin.org)!
 
-About BitcoinHD
+About BFScoin
 ---------------
 
-- BitcoinHD is a new type of crypto currency based on Proof of Capacity.
-- BitcoinHD uses an upgraded version of cPOC mining (Conditioned Proof of Capacity), with a perfect economic model and consensus algorithm.
-- BitcoinHD uses hard disk as the participant of consensus, which reduces power consumption.
-- BitcoinHD mining lowers the entry barriers, and makes the coin generation process more decentralized, secure and reliable.
-- Compared with POW mining, cPOC mining saves energy, consumes much less power, has lower noise, no heat, and is anti-ASIC. cPOC-mining-based BitcoinHD can realize the original intention of Satoshi Nakamoto ---- everyone can become a miner.
+- BFScoin is a new type of crypto currency based on Proof of Capacity.
+- BFScoin uses an upgraded version of cPOC mining (Conditioned Proof of Capacity), with a perfect economic model and consensus algorithm.
+- BFScoin uses hard disk as the participant of consensus, which reduces power consumption.
+- BFScoin mining lowers the entry barriers, and makes the coin generation process more decentralized, secure and reliable.
+- Compared with POW mining, cPOC mining saves energy, consumes much less power, has lower noise, no heat, and is anti-ASIC. cPOC-mining-based BFScoin can realize the original intention of Satoshi Nakamoto ---- everyone can become a miner.
 - Lowered the cost of credit, increased the strength and breadth of consensus, and improved the security of the consensus architecture
 
 For more information, as well as an immediately useable, binary version of
-the BitcoinHD Core software, see https://btchd.org/#wallet, or read the
-[original whitepaper](https://btchd.org/BHD-Whitepaper2.0.pdf).
+the BFScoin Core software, see https://bfscoin.org/#wallet, or read the
+[original whitepaper](https://bfscoin.org/bfspaper.pdf).
 
 License
 -------
 
-BitcoinHD Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
+BFScoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
 Development Process
 -------------------
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/btchd/btchd/tags) are created
-regularly to indicate new official, stable release versions of BitcoinHD Core.
+completely stable. [Tags](https://github.com/bfscoin/bfscoin/tags) are created
+regularly to indicate new official, stable release versions of BFScoin Core.
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
 and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
@@ -69,7 +69,7 @@ not straightforward.
 Translations
 ------------
 
-The BitcoinHD Core base on Bitcoin Core and shares resources with it.
+The BFScoin Core base on Bitcoin Core and shares resources with it.
 
 Changes to translations as well as new translations can be submitted to
 [Bitcoin Core's Transifex page](https://www.transifex.com/bitcoin/bitcoin/).

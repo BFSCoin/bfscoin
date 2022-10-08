@@ -248,6 +248,7 @@ void SendCoinsDialog::onOperateMethodComboBoxChanged(int index)
         switch ((PayOperateMethod)opMethodValue)
         {
         case PayOperateMethod::Point:
+            ui->sendButton->setEnabled(true);
         case PayOperateMethod::BindPlotter:
             ui->clearButton->setVisible(false);
             ui->addButton->setVisible(false);
@@ -271,6 +272,12 @@ void SendCoinsDialog::onOperateMethodComboBoxChanged(int index)
         ui->frameFee->setVisible((PayOperateMethod)opMethodValue != PayOperateMethod::BindPlotter);
         ui->checkBindDataButton->setVisible((PayOperateMethod)opMethodValue == PayOperateMethod::BindPlotter);
 
+        if (isMircoClubOfWallet()){
+            ui->sendButton->setDisabled((PayOperateMethod)opMethodValue != PayOperateMethod::Point);
+            ui->clearButton->setVisible(false);
+            ui->addButton->setVisible(false);
+        }
+
         clear();
         setBalance(model->wallet().getBalances());
     }
@@ -281,10 +288,16 @@ void SendCoinsDialog::on_sendButton_clicked()
     if(!model || !model->getOptionsModel())
         return;
 
+    PayOperateMethod operateMethod = getPayOperateMethod();
+
+    if (isMircoClubOfWallet() && (PayOperateMethod::Point != operateMethod))
+	{
+        //Micro club does not support transfer and binding, and can point to
+        return;
+    }
+
     fNewRecipientAllowed = false;
     std::unique_ptr< bool,std::function<void(bool*)> > resetNewRecipientAllowed(&fNewRecipientAllowed, [](bool *b) { *b = true; });
-
-    PayOperateMethod operateMethod = getPayOperateMethod();
 
     QList<SendCoinsRecipient> recipients;
     bool valid = true;
@@ -339,11 +352,12 @@ void SendCoinsDialog::on_sendButton_clicked()
 
         ctrl.m_coin_pick_policy = CoinControlDialog::coinControl()->m_coin_pick_policy;
         ctrl.m_pick_dest = ctrl.destChange = DecodeDestination(recipients[0].address.toStdString());
-        if (nSpendHeight < params.BHDIP006CheckRelayHeight) {
+        if (nSpendHeight < params.BFSIP002CheckRelayHeight) {
             updateCoinControlState(ctrl);
         } else { // Fixed fee
             ctrl.m_min_txfee = PROTOCOL_BINDPLOTTER_MINFEE;
         }
+        ctrl.m_confirm_target = PROTOCOL_BINDPLOTTER_CONFIRMTARGET;
 
         // Update bind fee
         uint64_t plotterId;
@@ -848,13 +862,13 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
         msgParams.first = tr("Payment request expired.");
         msgParams.second = CClientUIInterface::MSG_ERROR;
         break;
-    case WalletModel::InactivedBHDIP006:
+    case WalletModel::InactivedBFSIP002:
         if (getPayOperateMethod() == PayOperateMethod::BindPlotter) {
             msgParams.first = tr("The bind plotter consensus active on %1 after.")
-                .arg(QString::number(Params().GetConsensus().BHDIP006Height));
+                .arg(QString::number(Params().GetConsensus().BFSIP002Height));
         } else {
             msgParams.first = tr("The point consensus active on %1 after.")
-                .arg(QString::number(Params().GetConsensus().BHDIP006Height));
+                .arg(QString::number(Params().GetConsensus().BFSIP002Height));
         }
         break;
     case WalletModel::InvalidBindPlotterAmount:
@@ -1015,7 +1029,21 @@ void SendCoinsDialog::primaryAddressChanged()
 
 PayOperateMethod SendCoinsDialog::getPayOperateMethod()
 {
-    return (PayOperateMethod) ui->operateMethodComboBox->itemData(ui->operateMethodComboBox->currentIndex()).toInt();
+    return (PayOperateMethod)ui->operateMethodComboBox->itemData(ui->operateMethodComboBox->currentIndex()).toInt();
+}
+
+bool SendCoinsDialog::isMircoClubOfWallet()
+{
+    std::vector<interfaces::WalletAddress> vecAddress = model->wallet().getAddresses();
+    CTxDestination destMircoClub = DecodeDestination(Params().GetConsensus().BFSMicroClubAddress);
+    for (interfaces::WalletAddress& address : vecAddress) {
+        if (address.is_mine != ISMINE_SPENDABLE) {
+            continue;
+        } else if (address.dest == destMircoClub) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Coin Control: copy label "Quantity" to clipboard
@@ -1112,7 +1140,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!IsValidDestination(dest)) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid BitcoinHD address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid BFScoin address"));
         }
         else // Valid address
         {

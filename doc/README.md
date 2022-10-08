@@ -1,38 +1,38 @@
-BitcoinHD Core
+BFScoin Core
 =============
 
 Setup
 ---------------------
-BitcoinHD Core is the original BitcoinHD client and it builds the backbone of the network. It downloads and, by default, stores the entire history of BitcoinHD transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
+BFScoin Core is the original BFScoin client and it builds the backbone of the network. It downloads and, by default, stores the entire history of BFScoin transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download BitcoinHD Core, visit [btchd.org](https://btchd.org/).
+To download BFScoin Core, visit [bfscoin.org](https://bfscoin.org/).
 
 Running
 ---------------------
-The following are some helpful notes on how to run BitcoinHD Core on your native platform.
+The following are some helpful notes on how to run BFScoin Core on your native platform.
 
 ### Unix
 
 Unpack the files into a directory and run:
 
-- `bin/btchd-qt` (GUI) or
-- `bin/btchdd` (headless)
+- `bin/bfscoin-qt` (GUI) or
+- `bin/bfscoind` (headless)
 
 ### Windows
 
-Unpack the files into a directory, and then run btchd-qt.exe.
+Unpack the files into a directory, and then run bfscoin-qt.exe.
 
 ### macOS
 
-Drag BitcoinHD Core to your applications folder, and then run BitcoinHD Core.
+Drag BFScoin Core to your applications folder, and then run BFScoin Core.
 
 ### Need Help?
 
-* See the documentation at the [BitcoinHD Wiki](https://btchd.org/wiki/Main_Page)
+* See the documentation at the [BFScoin Wiki](https://bfscoin.org/wiki/Main_Page)
 
 Building
 ---------------------
-The following are developer notes on how to build BitcoinHD Core on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
+The following are developer notes on how to build BFScoin Core on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
 
 - [Dependencies](dependencies.md)
 - [macOS Build Notes](build-osx.md)
@@ -45,7 +45,7 @@ The following are developer notes on how to build BitcoinHD Core on your native 
 
 Development
 ---------------------
-The BitcoinHD repo's [root README](/README.md) contains relevant information on the development process and automated testing.
+The BFScoin repo's [root README](/README.md) contains relevant information on the development process and automated testing.
 
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
@@ -68,7 +68,7 @@ The BitcoinHD repo's [root README](/README.md) contains relevant information on 
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
-- [btchd.conf Configuration File](bitcoin-conf.md)
+- [bfscoin.conf Configuration File](bitcoin-conf.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
 - [Reduce Memory](reduce-memory.md)

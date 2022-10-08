@@ -23,7 +23,7 @@ static void BlockToJsonVerbose(benchmark::State& state) {
     CBlockIndex blockindex;
     const uint256 blockHash = block.GetHash();
     blockindex.phashBlock = &blockHash;
-    blockindex.nBits = 403014710;
+    blockindex.nPlotterId = 403014710;
 
     while (state.KeepRunning()) {
         (void)blockToJSON(block, &blockindex, &blockindex, /*verbose*/ true);
